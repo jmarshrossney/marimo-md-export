@@ -4,4 +4,5 @@ site/
 __marimo__/
 *.html
 
+example.md
 plan.md

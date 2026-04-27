@@ -377,7 +377,6 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "lxml" },
     { name = "marimo" },
-    { name = "ruff" },
     { name = "typer" },
 ]
 
@@ -387,6 +386,7 @@ dev = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "pytest" },
+    { name = "ruff" },
     { name = "rust-just" },
     { name = "zensical" },
 ]
@@ -402,7 +402,6 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
     { name = "lxml", specifier = ">=6.1.0" },
     { name = "marimo", specifier = ">=0.23.3" },
-    { name = "ruff", specifier = ">=0.15.12" },
     { name = "typer", specifier = ">=0.25.0" },
 ]
 
@@ -412,6 +411,7 @@ dev = [
     { name = "numpy", specifier = ">=2.4.4" },
     { name = "pandas", specifier = ">=3.0.2" },
     { name = "pytest", specifier = ">=9.0.3" },
+    { name = "ruff", specifier = ">=0.15.12" },
     { name = "rust-just", specifier = ">=1.50.0" },
     { name = "zensical", specifier = ">=0.0.37" },
 ]
