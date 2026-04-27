@@ -28,6 +28,6 @@ def test_full_pipeline(tmp_path):
 
     assert "WARNING" not in result.output
 
-    docs_output = Path("docs/index.md")
+    docs_output = Path("docs/example.md")
     docs_output.parent.mkdir(exist_ok=True)
     docs_output.write_text(md)
