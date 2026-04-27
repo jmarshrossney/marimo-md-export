@@ -5,7 +5,7 @@ _:
 lint:
   ruff format
   ruff check
-  marimo check
+  marimo check tests/integration/demo_notebook.py
 
 # Run the test suite using pytest.
 test:

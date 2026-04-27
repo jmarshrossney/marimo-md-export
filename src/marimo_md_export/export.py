@@ -4,7 +4,14 @@ from pathlib import Path
 
 def export_html(notebook: Path, extra_args: list[str] | None = None) -> bytes:
     result = subprocess.run(
-        ["marimo", "export", "html", "--no-sandbox", *(extra_args or []), str(notebook)],
+        [
+            "marimo",
+            "export",
+            "html",
+            "--no-sandbox",
+            *(extra_args or []),
+            str(notebook),
+        ],
         capture_output=True,
         check=True,
     )
