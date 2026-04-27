@@ -382,7 +382,11 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
     { name = "pytest" },
+    { name = "zensical" },
 ]
 docs = [
     { name = "matplotlib" },
@@ -400,7 +404,13 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.3" }]
+dev = [
+    { name = "matplotlib", specifier = ">=3.10.9" },
+    { name = "numpy", specifier = ">=2.4.4" },
+    { name = "pandas", specifier = ">=3.0.2" },
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "zensical", specifier = ">=0.0.37" },
+]
 docs = [
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "numpy", specifier = ">=2.4.4" },
