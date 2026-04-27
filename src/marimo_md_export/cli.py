@@ -1,4 +1,3 @@
-import subprocess
 from pathlib import Path
 
 import typer
@@ -8,7 +7,11 @@ from .inject import inject_outputs
 from .parse_html import extract_outputs
 from .parse_md import collect_marked_cells
 
-app = typer.Typer(add_completion=False)
+app = typer.Typer(
+    help="Command-line tool for exporting marimo .py notebooks to markdown .md with rendered HTML.",
+    context_settings={"help_option_names": ["-h", "--help"]},
+    add_completion=False,
+)
 
 
 @app.command()
@@ -16,10 +19,14 @@ def main(
     notebook: Path = typer.Argument(
         ...,
         exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
         help="Path to the marimo notebook (.py)",
     ),
     output: Path = typer.Argument(
         ...,
+        writable=True,
         help="Where to write the resulting markdown file",
     ),
     marimo_args: str = typer.Option(
@@ -36,9 +43,9 @@ def main(
     if verbose:
         typer.echo(f"Exporting markdown: {notebook}")
     try:
-        md = export_md(notebook, extra)
-    except subprocess.CalledProcessError as exc:
-        typer.echo(f"marimo export md failed:\n{exc.stderr.decode()}", err=True)
+        md = export_md(notebook)
+    except RuntimeError as exc:
+        typer.echo(f"marimo export md failed:\n{exc}", err=True)
         raise typer.Exit(1)
 
     marked = collect_marked_cells(md)
@@ -59,8 +66,8 @@ def main(
 
     try:
         html = export_html(notebook, extra)
-    except subprocess.CalledProcessError as exc:
-        typer.echo(f"marimo export html failed:\n{exc.stderr.decode()}", err=True)
+    except RuntimeError as exc:
+        typer.echo(f"marimo export html failed:\n{exc}", err=True)
         raise typer.Exit(1)
 
     target_hashes = {c.source_hash for c in marked}
