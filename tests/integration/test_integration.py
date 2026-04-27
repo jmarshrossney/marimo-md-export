@@ -1,16 +1,18 @@
-import subprocess
 from pathlib import Path
+
+from typer.testing import CliRunner
+
+from marimo_md_export.cli import app
+
+runner = CliRunner()
 
 
 def test_full_pipeline(tmp_path):
     notebook = Path("tests/integration/demo_notebook.py")
     output = tmp_path / "output.md"
 
-    result = subprocess.run(
-        ["uv", "run", "marimo-md-export", str(notebook), str(output)],
-        capture_output=True,
-    )
-    assert result.returncode == 0, result.stderr.decode()
+    result = runner.invoke(app, [str(notebook), str(output)])
+    assert result.exit_code == 0, result.output
 
     md = output.read_text()
 
@@ -24,7 +26,7 @@ def test_full_pipeline(tmp_path):
 
     assert "Interpretation" in md
 
-    assert "WARNING" not in result.stderr.decode()
+    assert "WARNING" not in result.output
 
     docs_output = Path("docs/index.md")
     docs_output.parent.mkdir(exist_ok=True)
