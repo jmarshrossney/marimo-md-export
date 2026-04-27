@@ -13,5 +13,8 @@ test:
 
 # Build the documentation using Zensical.
 docs:
+  marimo export html tests/integration/demo_notebook.py \
+    --output "docs/example-notebook.html" \
+    --no-sandbox --force
   zensical build
   # NOTE: run `python -m http.server -d site 8000` and open to see buttons
