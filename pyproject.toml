@@ -24,6 +24,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "rust-just>=1.50.0",
     {include-group = "docs"},
 ]
 docs = [

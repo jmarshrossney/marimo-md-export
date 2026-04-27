@@ -1,4 +1,6 @@
 __pycache__/
 .envrc
+site/
+__marimo__/
 
 plan.md

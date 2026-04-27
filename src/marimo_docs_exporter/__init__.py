@@ -1,2 +1,5 @@
+from marimo_docs_exporter.cli import app as _app
+
+
 def main() -> None:
-    print("Hello from marimo-docs-exporter!")
+    _app()
