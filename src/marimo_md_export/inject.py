@@ -1,11 +1,10 @@
-import re
 import sys
 import warnings
 
 from bs4 import BeautifulSoup
 
-from marimo_docs_exporter.models import ExtractedOutput, MarkedCell
-from marimo_docs_exporter.parse_md import collect_marked_cells
+from .models import ExtractedOutput, MarkedCell
+from .parse_md import collect_marked_cells
 
 
 def _table_to_gfm(html: str) -> str | None:
@@ -80,6 +79,8 @@ def inject_outputs(
 
         matched.label = cell.label
         formatted = _format_output(matched)
-        result = result.replace(cell.block_text, cell.block_text + "\n\n" + formatted, 1)
+        result = result.replace(
+            cell.block_text, cell.block_text + "\n\n" + formatted, 1
+        )
 
     return result

@@ -1,7 +1,7 @@
 import hashlib
 import re
 
-from marimo_docs_exporter.models import MarkedCell
+from .models import MarkedCell
 
 # Matches fenced code blocks produced by `marimo export md`
 _BLOCK_RE = re.compile(r"(```python \{\.marimo\}\n(.*?)```)", re.DOTALL)

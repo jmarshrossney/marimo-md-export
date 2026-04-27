@@ -7,7 +7,7 @@ def test_full_pipeline(tmp_path):
     output = tmp_path / "output.md"
 
     result = subprocess.run(
-        ["uv", "run", "marimo-docs-exporter", str(notebook), str(output)],
+        ["uv", "run", "marimo-md-export", str(notebook), str(output)],
         capture_output=True,
     )
     assert result.returncode == 0, result.stderr.decode()

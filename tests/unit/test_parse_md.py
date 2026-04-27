@@ -2,7 +2,7 @@ import hashlib
 
 import pytest
 
-from marimo_docs_exporter.parse_md import collect_marked_cells
+from marimo_md_export.parse_md import collect_marked_cells
 
 
 def _md5(s: str) -> str:

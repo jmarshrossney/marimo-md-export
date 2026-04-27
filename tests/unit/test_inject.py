@@ -1,11 +1,8 @@
-import sys
-import warnings
-
 import pytest
 
-from marimo_docs_exporter.inject import inject_outputs
-from marimo_docs_exporter.models import ExtractedOutput
-from marimo_docs_exporter.parse_md import collect_marked_cells
+from marimo_md_export.inject import inject_outputs
+from marimo_md_export.models import ExtractedOutput
+from marimo_md_export.parse_md import collect_marked_cells
 
 
 def _block(source: str) -> str:

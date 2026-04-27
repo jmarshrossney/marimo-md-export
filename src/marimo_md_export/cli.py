@@ -1,13 +1,12 @@
 import subprocess
-import sys
 from pathlib import Path
 
 import typer
 
-from marimo_docs_exporter.export import export_html, export_md
-from marimo_docs_exporter.inject import inject_outputs
-from marimo_docs_exporter.parse_html import extract_outputs
-from marimo_docs_exporter.parse_md import collect_marked_cells
+from .export import export_html, export_md
+from .inject import inject_outputs
+from .parse_html import extract_outputs
+from .parse_md import collect_marked_cells
 
 app = typer.Typer(add_completion=False)
 

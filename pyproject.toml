@@ -1,7 +1,7 @@
 [project]
-name = "marimo-docs-exporter"
+name = "marimo-md-export"
 version = "0.1.0"
-description = "Export marimo notebooks to markdown with HTML outputs injected."
+description = "A minimal solution for exporting marimo notebooks to markdown *with* rendered HTML outputs, designed for mkdocs/zensical sites."
 readme = "README.md"
 authors = [
     { name = "jmarshrossney", email = "17361029+jmarshrossney@users.noreply.github.com" }
@@ -11,11 +11,12 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "lxml>=6.1.0",
     "marimo>=0.23.3",
+    "ruff>=0.15.12",
     "typer>=0.25.0",
 ]
 
 [project.scripts]
-marimo-docs-exporter = "marimo_docs_exporter:main"
+marimo-md-export = "marimo_md_export:main"
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]

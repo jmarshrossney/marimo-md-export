@@ -7,9 +7,7 @@ marimo to be installed or run.
 import hashlib
 import json
 
-import pytest
-
-from marimo_docs_exporter.parse_html import extract_outputs
+from marimo_md_export.parse_html import extract_outputs
 
 
 def _md5(s: str) -> str:
@@ -41,7 +39,9 @@ def _figure_cell(code: str) -> dict:
         "code_hash": _md5(code.strip()),
         "id": "aaa",
         "console": [],
-        "outputs": [{"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
     }
 
 
@@ -56,6 +56,7 @@ def _table_cell(code: str, rows: list[dict], columns: list[str]) -> dict:
         f"</marimo-table></marimo-ui-element>"
     )
     import html as html_module
+
     escaped = html_module.escape(marimo_table, quote=False)
     return {
         "code_hash": _md5(code.strip()),

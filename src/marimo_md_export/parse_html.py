@@ -25,9 +25,11 @@ from html import unescape
 
 from bs4 import BeautifulSoup
 
-from marimo_docs_exporter.models import ExtractedOutput
+from .models import ExtractedOutput
 
-_SESSION_CELLS_RE = re.compile(r'"session"\s*:\s*\{"cells"\s*:\s*(\[)', )
+_SESSION_CELLS_RE = re.compile(
+    r'"session"\s*:\s*\{"cells"\s*:\s*(\[)',
+)
 
 
 def _extract_session_cells_raw(html: bytes) -> str:
