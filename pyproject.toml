@@ -1,11 +1,17 @@
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
+
 [project]
 name = "marimo-md-export"
 version = "0.1.0"
 description = "A minimal solution for exporting marimo notebooks to markdown *with* rendered HTML outputs, designed for mkdocs/zensical sites."
-readme = "README.md"
 authors = [
     { name = "jmarshrossney", email = "17361029+jmarshrossney@users.noreply.github.com" }
 ]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.14.3",
@@ -13,13 +19,21 @@ dependencies = [
     "marimo>=0.23.3",
     "typer>=0.25.0",
 ]
+keywords = ["marimo", "markdown", "documentation"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Topic :: Documentation",
+  "Topic :: Text Processing :: Markup :: Markdown",
+]
+
+[project.urls]
+Homepage = "https://jmarshrossney.github.io/marimo-md-export"
+Repository = "https://github.com/jmarshrossney/marimo-md-export"
+Documentation = "https://jmarshrossney.github.io/marimo-md-export"
 
 [project.scripts]
 marimo-md-export = "marimo_md_export:main"
-
-[build-system]
-requires = ["uv_build>=0.9.5,<0.10.0"]
-build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
