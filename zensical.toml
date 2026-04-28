@@ -8,7 +8,7 @@
 
 [project]
 
-use_directory_urls = true
+use_directory_urls = false
 
 site_name = "marimo-md-export"
 site_description = "Site for the marimo-md-export tool."
@@ -22,10 +22,11 @@ copyright = """
 Copyright &copy; 2026 Joe Marsh Rossney
 """
 
-# nav = [
-#   { "Get started" = "index.md" },
-#   { "Markdown in 5min" = "markdown.md" },
-# ]
+nav = [
+  { "Home" = "index.md" },
+  { "Getting Started" = "getting_started.md" },
+  { "Example" = "example.md" },
+]
 
 extra_javascript = [
     "_static/js/marimo-button.js",
