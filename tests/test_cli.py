@@ -24,7 +24,10 @@ def test_full_pipeline(tmp_path, example_notebook):
     assert "<!-- @output:table_summary -->" in md
     assert "|" in md or "<table" in md, "table should be present as GFM or HTML"
 
-    assert "Interpretation" in md
+    assert "<!-- @output:text_stats -->" in md
+    assert "<pre" in md, "text output should be wrapped in a pre block"
+
+    assert "Figures" in md
 
     assert "WARNING" not in result.output
 

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -19,3 +19,4 @@ class ExtractedOutput:
     label: str
     raw_html: str
     output_type: str  # "figure" | "table" | "text" | "unknown"
+    console_html: str = field(default="")

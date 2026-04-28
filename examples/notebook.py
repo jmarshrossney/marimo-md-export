@@ -1,10 +1,10 @@
 import marimo
 
 __generated_with = "0.23.3"
-app = marimo.App()
+app = marimo.App(app_title="Example notebook")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import marimo as mo
     import matplotlib.pyplot as plt
@@ -20,6 +20,16 @@ def _(mo):
     # Example notebook
 
     This notebook serves as a proof of principle for `marimo-docs-exporter`.
+
+    We consider a damped sinusoid which decays as exp(-x/6), reducing variance by roughly a factor of (1 - exp(-2π/3)) per cycle.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Figures
     """)
     return
 
@@ -35,6 +45,14 @@ def _(np, plt):
     ax.legend()
     fig
     return (x,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Tables
+    """)
+    return
 
 
 @app.cell
@@ -58,11 +76,17 @@ def _(np, pd, x):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Interpretation
-
-    The damped sinusoid decays as exp(-x/6), reducing variance by roughly a factor
-    of (1 - exp(-2π/3)) per cycle.
+    ## Console
     """)
+    return
+
+
+@app.cell
+def _(np, x):
+    # @output: text_stats
+    print(f"Number of points: {len(x)}")
+    print(f"x range: [{x[0]:.4f}, {x[-1]:.4f}]")
+    print(f"Mean of sin(x): {np.mean(np.sin(x)):.6f}")
     return
 
 

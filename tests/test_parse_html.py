@@ -75,6 +75,15 @@ def _text_cell(code: str, text: str) -> dict:
     }
 
 
+def _console_cell(code: str, stdout: str, outputs: list | None = None) -> dict:
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "ddd",
+        "console": [{"name": "stdout", "text": stdout}],
+        "outputs": outputs or [],
+    }
+
+
 # ---------------------------------------------------------------------------
 
 
@@ -130,6 +139,47 @@ def test_no_output_cell_skipped():
         "id": "zzz",
         "console": [],
         "outputs": [{"type": "data", "data": {"text/plain": ""}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html, {_md5(code.strip())})
+    assert results == {}
+
+
+def test_console_stdout_extracted():
+    code = "# @output: con\nprint('hello')"
+    html = _make_html([_console_cell(code, "hello\n")])
+    results = extract_outputs(html, {_md5(code.strip())})
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert "<pre>hello\n</pre>" == out.console_html
+    assert out.raw_html == ""
+
+
+def test_console_and_cell_output_combined():
+    code = "# @output: both\nprint('hi')\nfig"
+    bundle = json.dumps({"image/png": _PNG_DATA})
+    cell = _console_cell(
+        code,
+        "hi\n",
+        outputs=[
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    )
+    html = _make_html([cell])
+    results = extract_outputs(html, {_md5(code.strip())})
+    out = results[_md5(code.strip())]
+    assert "<pre>hi\n</pre>" == out.console_html
+    assert out.output_type == "figure"
+    assert _PNG_DATA in out.raw_html
+
+
+def test_stderr_ignored():
+    code = "# @output: err\nimport sys; print('bad', file=sys.stderr)"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "eee",
+        "console": [{"name": "stderr", "text": "bad\n"}],
+        "outputs": [],
     }
     html = _make_html([cell])
     results = extract_outputs(html, {_md5(code.strip())})

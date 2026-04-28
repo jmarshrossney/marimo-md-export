@@ -39,16 +39,18 @@ def _table_to_gfm(html: str) -> str | None:
 
 def _format_output(output: ExtractedOutput) -> str:
     comment = f"<!-- @output:{output.label} -->"
-    if output.output_type == "figure":
-        return f"{comment}\n\n{output.raw_html}"
-    if output.output_type == "table":
-        gfm = _table_to_gfm(output.raw_html)
-        if gfm is not None:
-            return f"{comment}\n\n{gfm}"
-        return f"{comment}\n\n{output.raw_html}"
-    if output.output_type == "text":
-        return f"{comment}\n\n{output.raw_html}"
-    return f"{comment}\n\n{output.raw_html}"
+
+    parts = []
+    if output.console_html:
+        parts.append(output.console_html)
+    if output.raw_html:
+        if output.output_type == "table":
+            gfm = _table_to_gfm(output.raw_html)
+            parts.append(gfm if gfm is not None else output.raw_html)
+        else:
+            parts.append(output.raw_html)
+
+    return comment + "\n\n" + "\n\n".join(parts)
 
 
 def inject_outputs(

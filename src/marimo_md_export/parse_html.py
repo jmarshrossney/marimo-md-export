@@ -141,18 +141,32 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
         if code_hash not in target_hashes:
             continue
 
+        stdout = "".join(
+            c.get("text", "")
+            for c in cell.get("console", [])
+            if c.get("name") == "stdout"
+        )
+        console_html = f"<pre>{stdout}</pre>" if stdout.strip() else ""
+
+        raw_html = ""
+        output_type = "unknown"
         for output in cell.get("outputs", []):
             data = output.get("data", {})
             classified = _classify_and_build(data)
             if classified is None:
                 continue
             output_type, raw_html = classified
-            # label is filled in by inject.py after matching; use hash as placeholder
-            results[code_hash] = ExtractedOutput(
-                label=code_hash,
-                raw_html=raw_html,
-                output_type=output_type,
-            )
             break  # take the first renderable output per cell
+
+        if not console_html and not raw_html:
+            continue
+
+        # label is filled in by inject.py after matching; use hash as placeholder
+        results[code_hash] = ExtractedOutput(
+            label=code_hash,
+            raw_html=raw_html,
+            output_type=output_type,
+            console_html=console_html,
+        )
 
     return results
