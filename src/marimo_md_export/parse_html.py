@@ -21,7 +21,7 @@
 
 import json
 import re
-from html import unescape
+from html import escape, unescape
 
 from bs4 import BeautifulSoup
 
@@ -77,9 +77,9 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
         columns = list(rows[0].keys()) if rows else []
 
     def _cell(v: object) -> str:
-        return "" if v is None else str(v)
+        return "" if v is None else escape(str(v))
 
-    header = "".join(f"<th>{col}</th>" for col in columns)
+    header = "".join(f"<th>{escape(str(col))}</th>" for col in columns)
     body_rows = "".join(
         "<tr>" + "".join(f"<td>{_cell(row.get(col))}</td>" for col in columns) + "</tr>"
         for row in rows
@@ -101,7 +101,7 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
             bundle = {}
         src = bundle.get("image/png")
         if src:
-            return "figure", f'<img src="{src}" alt="figure">'
+            return "figure", f'<img src="{escape(src, quote=True)}" alt="figure">'
 
     # HTML output (may be a marimo-table web component)
     html_val = data.get("text/html")
@@ -117,7 +117,7 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
 
     plain = data.get("text/plain", "")
     if plain and plain.strip():
-        return "text", f"<pre>{plain}</pre>"
+        return "text", f"<pre>{escape(plain)}</pre>"
 
     return None
 
@@ -146,7 +146,7 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
             for c in cell.get("console", [])
             if c.get("name") == "stdout"
         )
-        console_html = f"<pre>{stdout}</pre>" if stdout.strip() else ""
+        console_html = f"<pre>{escape(stdout)}</pre>" if stdout.strip() else ""
 
         raw_html = ""
         output_type = "unknown"
