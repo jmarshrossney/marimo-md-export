@@ -74,15 +74,18 @@ The marker can appear anywhere inside the cell — it does not need to be the fi
 marimo-md-export notebook.py output.md
 ```
 
-### Options
+This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to see all available options.
+
+#### Options
 
 | Flag | Description |
 |---|---|
+| `--html-output PATH` | If provided, also save the intermediate HTML export to this path |
 | `--marimo-args TEXT` | Extra arguments forwarded to `marimo export` (space-separated) |
 | `-v`, `--verbose` | Print progress to stdout |
 | `-h`, `--help` | Show help and exit |
 
-### Exit codes
+#### Exit codes
 
 | Code | Meaning |
 |---|---|

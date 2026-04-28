@@ -19,7 +19,10 @@ def _(mo):
     mo.md("""
     # Example notebook
 
-    This notebook serves as a proof of principle for `marimo-docs-exporter`.
+    This notebook serves as a proof of principle for `marimo-md-export`.
+
+    You can view the original notebook at [`examples/notebook.py`](https://github.com/jmarshrossney/marimo-md-export/examples/notebook.py).
+    The command used to convert it to a docs page is the `just docs` command in [`justfile`](https://github.com/jmarshrossney/marimo-md-export/justfile).
 
     We consider a damped sinusoid which decays as exp(-x/6), reducing variance by roughly a factor of (1 - exp(-2π/3)) per cycle.
     """)
