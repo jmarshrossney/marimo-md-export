@@ -29,6 +29,12 @@ def main(
         writable=True,
         help="Where to write the resulting markdown file",
     ),
+    html_output: Path = typer.Option(
+        None,
+        "--html-output",
+        writable=True,
+        help="If provided, also save the intermediate HTML export to this path",
+    ),
     marimo_args: str = typer.Option(
         "",
         "--marimo-args",
@@ -39,7 +45,6 @@ def main(
     """Export a marimo notebook to markdown with rendered outputs injected."""
     extra = marimo_args.split() if marimo_args.strip() else []
 
-    # Run both exports
     if verbose:
         typer.echo(f"Exporting markdown: {notebook}")
     try:
@@ -69,6 +74,12 @@ def main(
     except RuntimeError as exc:
         typer.echo(f"marimo export html failed:\n{exc}", err=True)
         raise typer.Exit(1)
+
+    if html_output is not None:
+        html_output.parent.mkdir(parents=True, exist_ok=True)
+        html_output.write_bytes(html)
+        if verbose:
+            typer.echo(f"Wrote {html_output}")
 
     target_hashes = {c.source_hash for c in marked}
     outputs = extract_outputs(html, target_hashes)

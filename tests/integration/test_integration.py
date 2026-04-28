@@ -8,7 +8,7 @@ runner = CliRunner()
 
 
 def test_full_pipeline(tmp_path):
-    notebook = Path("tests/integration/demo_notebook.py")
+    notebook = Path("tests/integration/example.py")
     output = tmp_path / "output.md"
 
     result = runner.invoke(app, [str(notebook), str(output)])
