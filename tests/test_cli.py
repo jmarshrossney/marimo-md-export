@@ -31,6 +31,5 @@ def test_full_pipeline(tmp_path, example_notebook):
 
     assert "WARNING" not in result.output
 
-    docs_output = Path("docs/example.md")
-    docs_output.parent.mkdir(exist_ok=True)
+    docs_output = tmp_path / "example.md"
     docs_output.write_text(md)
