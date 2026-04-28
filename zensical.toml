@@ -8,7 +8,7 @@
 
 [project]
 
-use_directory_urls = true
+use_directory_urls = false
 
 site_name = "marimo-md-export"
 site_description = "Site for the marimo-md-export tool."
