@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from typer.testing import CliRunner
 
 from marimo_md_export.cli import app
