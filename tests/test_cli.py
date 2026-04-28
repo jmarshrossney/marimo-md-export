@@ -7,8 +7,8 @@ from marimo_md_export.cli import app
 runner = CliRunner()
 
 
-def test_full_pipeline(tmp_path):
-    notebook = Path("tests/integration/example.py")
+def test_full_pipeline(tmp_path, example_notebook):
+    notebook = example_notebook
     output = tmp_path / "output.md"
 
     result = runner.invoke(app, [str(notebook), str(output)])

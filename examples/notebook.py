@@ -14,6 +14,16 @@ def _():
     return mo, np, pd, plt
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    # Example notebook
+
+    This notebook serves as a proof of principle for `marimo-docs-exporter`.
+    """)
+    return
+
+
 @app.cell
 def _(np, plt):
     # @output: fig_wave
@@ -45,14 +55,13 @@ def _(np, pd, x):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## Interpretation
 
     The damped sinusoid decays as exp(-x/6), reducing variance by roughly a factor
-    of (1 - exp(-2π/3)) per cycle. This notebook serves as a proof of principle
-    for `marimo-docs-exporter`.
+    of (1 - exp(-2π/3)) per cycle.
     """)
     return
 
