@@ -3,6 +3,7 @@ __pycache__/
 site/
 __marimo__/
 *.html
+.coverage
 
 example.md
 plan.md
