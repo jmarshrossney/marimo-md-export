@@ -1,14 +1,41 @@
 name: Publish to PyPI
 
+# Publishing workflow with three trigger modes:
+#
+# 1. Publish to TestPyPI (verify before a full release):
+#      git tag v<version>
+#      git push --tags
+#
+# 2. Publish to PyPI (full release):
+#    Create a GitHub Release via the GitHub UI or CLI, e.g.:
+#      gh release create v<version> --generate-notes
+#    Note: the release tag must match an existing tag, or GitHub will create it.
+#
+# 3. Manual publish (Actions tab -> "Publish to PyPI" -> "Run workflow"):
+#    Choose 'testpypi' or 'pypi' from the dropdown. Defaults to testpypi.
+
 on:
   release:
     types: [created]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Publish target"
+        required: true
+        default: testpypi
+        type: choice
+        options:
+          - testpypi
+          - pypi
 
 jobs:
   pypi-publish:
-    name: Upload release to PyPI
+    name: Upload release to ${{ github.event_name == 'push' && 'testpypi' || inputs.target || 'pypi' }}
     runs-on: ubuntu-latest
-    environment: pypi
+    environment: ${{ github.event_name == 'push' && 'testpypi' || inputs.target || 'pypi' }}
     permissions:
       id-token: write
       contents: read
@@ -16,4 +43,4 @@ jobs:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv build
-      - run: uv publish
+      - run: uv publish ${{ (github.event_name == 'push' || inputs.target == 'testpypi') && '--publish-url https://test.pypi.org/legacy/' || '' }}
