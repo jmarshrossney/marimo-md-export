@@ -58,8 +58,17 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     if elem is None:
         return marimo_table_html
 
-    data_data = elem.get("data-data", "[]")
-    field_types_raw = elem.get("data-field-types", "[]")
+    # Variable names follow HTML data-* attribute naming (hyphenated → snake_case)
+    data_data_attr = elem.get("data-data")
+    if not isinstance(data_data_attr, str):
+        return marimo_table_html
+    data_data = data_data_attr
+
+    field_types_raw_attr = elem.get("data-field-types")
+    if isinstance(field_types_raw_attr, str):
+        field_types_raw = field_types_raw_attr
+    else:
+        field_types_raw = "[]"
 
     # data-data is a JSON-quoted string containing an array of row objects.
     # It may contain literal NaN (not valid JSON).
@@ -67,13 +76,13 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
         inner = json.loads(data_data)  # unwrap outer JSON string
         cleaned = inner.replace("NaN", "null")
         rows = json.loads(cleaned)
-    except json.JSONDecodeError, AttributeError:
+    except (json.JSONDecodeError, AttributeError):
         return marimo_table_html
 
     try:
         field_types = json.loads(field_types_raw)
         columns = [ft[0] for ft in field_types]
-    except json.JSONDecodeError, IndexError:
+    except (json.JSONDecodeError, IndexError):
         columns = list(rows[0].keys()) if rows else []
 
     def _cell(v: object) -> str:

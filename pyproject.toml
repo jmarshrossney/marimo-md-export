@@ -37,6 +37,7 @@ marimo-md-export = "marimo_md_export:main"
 
 [dependency-groups]
 dev = [
+    "pyright>=1.1.409",
     "ruff>=0.15.12",
     "rust-just>=1.50.0",
     {include-group = "docs"},
@@ -57,4 +58,4 @@ test = [
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py314"
+target-version = "py313"
