@@ -110,3 +110,17 @@ def test_output_comment_injected():
     outputs = _build_outputs(md)
     result = inject_outputs(md, outputs)
     assert "<!-- @output:labelled -->" in result
+
+
+def test_table_to_gfm_no_table():
+    from marimo_md_export.inject import _table_to_gfm
+
+    result = _table_to_gfm("<div>not a table</div>")
+    assert result is None
+
+
+def test_table_to_gfm_empty_table():
+    from marimo_md_export.inject import _table_to_gfm
+
+    result = _table_to_gfm("<table></table>")
+    assert result is None

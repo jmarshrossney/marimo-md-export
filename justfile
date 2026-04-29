@@ -11,6 +11,10 @@ lint:
 test:
   pytest
 
+# Run tests with coverage report (requires pytest-cov).
+test-cov:
+  pytest --cov=marimo_md_export --cov-report=term-missing --cov-fail-under=90
+
 # Build the documentation using Zensical.
 docs:
   marimo-md-export examples/notebook.py docs/example.md \

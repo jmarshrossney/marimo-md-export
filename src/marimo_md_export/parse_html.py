@@ -67,13 +67,13 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
         inner = json.loads(data_data)  # unwrap outer JSON string
         cleaned = inner.replace("NaN", "null")
         rows = json.loads(cleaned)
-    except (json.JSONDecodeError, AttributeError):
+    except json.JSONDecodeError, AttributeError:
         return marimo_table_html
 
     try:
         field_types = json.loads(field_types_raw)
         columns = [ft[0] for ft in field_types]
-    except (json.JSONDecodeError, IndexError):
+    except json.JSONDecodeError, IndexError:
         columns = list(rows[0].keys()) if rows else []
 
     def _cell(v: object) -> str:

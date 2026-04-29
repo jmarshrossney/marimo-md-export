@@ -37,10 +37,10 @@ marimo-md-export = "marimo_md_export:main"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.3",
     "ruff>=0.15.12",
     "rust-just>=1.50.0",
     {include-group = "docs"},
+    {include-group = "test"},
 ]
 docs = [
     "matplotlib>=3.10.9",
@@ -48,3 +48,13 @@ docs = [
     "pandas>=3.0.2",
     "zensical>=0.0.37",
 ]
+test = [
+    "coverage>=7.13.5",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py314"
