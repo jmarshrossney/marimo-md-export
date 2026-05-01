@@ -7,6 +7,11 @@ lint:
   ruff check
   marimo check examples/notebook.py
 
+lint-check:
+  ruff format --check
+  ruff check
+  marimo check examples/notebook.py
+
 # Run the test suite using pytest.
 test:
   pytest

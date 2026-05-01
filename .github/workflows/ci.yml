@@ -1,15 +1,20 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - run: uv python install
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.13"
       - run: uv sync --group dev --locked
-      - run: uv run just lint
+      - run: uv run just lint-check
       - run: uv run just typecheck
 
   test:
@@ -19,7 +24,8 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv python install ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
       - run: uv sync --group dev --locked
-      - run: uv run --python ${{ matrix.python-version }} just test-cov
+      - run: uv run just test-cov
