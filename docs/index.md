@@ -26,14 +26,13 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 4. Matches each cell to its rendered output in the HTML export by hashing the cell source.
 5. Injects each output into the markdown immediately after its code block, labelled with the cell's marimo ID.
 
-Figures are embedded as base64 `<img>` tags.
-Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
-Console output (stdout and stderr) is captured and rendered as `<pre>` blocks.
-JSON values (dicts, lists) are pretty-printed in code blocks, with marimo type prefixes stripped.
-Error outputs are rendered as plain-text `<pre>` blocks with the traceback and exception message.
-LaTeX output is wrapped in `$$` delimiters for math rendering.
-SVG graphics and other HTML outputs are passed through as-is.
-Unsupported output types (vega, jupyter widgets, etc.) produce placeholder comments.
+- Figures are embedded as base64 `<img>` tags.
+- Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
+- Console output (stdout and stderr) is captured and rendered as `<pre>` blocks.
+- JSON values (dicts, lists) are pretty-printed in code blocks, with marimo type prefixes stripped.
+- Error outputs are rendered as plain-text `<pre>` blocks with the traceback and exception message.
+- SVG graphics and other HTML outputs are passed through as-is.
+- Unsupported output types (vega, jupyter widgets, etc.) produce placeholder comments.
 
 ## Caveats
 
