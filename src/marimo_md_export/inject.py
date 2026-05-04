@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from .models import ExtractedOutput, MarkedCell
+from .models import Cell, ExtractedOutput
 
 
 def _table_to_gfm(html: str) -> str | None:
@@ -41,7 +41,7 @@ def _table_to_gfm(html: str) -> str | None:
 
 
 def _format_output(output: ExtractedOutput) -> str:
-    comment = f"<!-- @output:{output.label} -->"
+    comment = f"<!-- @output:{output.cell_id} -->"
 
     parts = []
     if output.console_html:
@@ -58,30 +58,28 @@ def _format_output(output: ExtractedOutput) -> str:
 
 def inject_outputs(
     md: str,
-    marked_cells: list[MarkedCell],
+    cells: list[Cell],
     outputs: dict[str, ExtractedOutput],
 ) -> tuple[str, list[str]]:
-    """Inject rendered outputs into the markdown after each marked code block.
+    """Inject rendered outputs into the markdown after each code block.
 
-    marked_cells should come from collect_marked_cells(md).  outputs maps
-    source_hash → ExtractedOutput.  Labels are set from the corresponding
-    MarkedCell during injection.
+    cells should come from collect_cells(md).  outputs maps
+    source_hash → ExtractedOutput.  Cell IDs from the HTML export are used
+    as labels in the output anchor comments.
 
     Returns (result_markdown, warnings) where warnings is a list of
-    human-readable messages for outputs that had no matching rendered data.
+    human-readable messages.
     """
     result = md
     warnings: list[str] = []
-    for cell in marked_cells:
+    for cell in cells:
+        if cell.suppressed:
+            continue
         matched = outputs.get(cell.source_hash)
         if matched is None:
-            warnings.append(
-                f"no output found for @output:{cell.label} "
-                f"(hash {cell.source_hash[:8]})"
-            )
+            # No renderable output — expected for import/setup cells
             continue
 
-        matched.label = cell.label
         formatted = _format_output(matched)
         result = result.replace(
             cell.block_text, cell.block_text + "\n\n" + formatted, 1

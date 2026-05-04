@@ -6,6 +6,7 @@
 #
 #   __MARIMO_MOUNT_CONFIG__.session.cells[]
 #     .code_hash  — MD5 hex digest of cell source (stripped)
+#     .id         — marimo's internal cell identifier (e.g. "aaa", "bbb")
 #     .outputs[]
 #       .type     — "data"
 #       .data     — dict of MIME type → value
@@ -136,11 +137,12 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     return None
 
 
-def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, ExtractedOutput]:
+def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
     """Extract rendered outputs from the marimo HTML export.
 
-    Returns a dict mapping source_hash → ExtractedOutput for each cell whose
-    code_hash is in target_hashes and that has a renderable output.
+    Returns a dict mapping source_hash → ExtractedOutput for each cell
+    that has a renderable output. The cell_id is populated from marimo's
+    internal cell identifier.
 
     If a cell has multiple outputs, only the first renderable one is used
     (in MIME-type priority order: marimo mimebundle → text/html → text/plain).
@@ -156,8 +158,7 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
 
     for cell in cells:
         code_hash = cell.get("code_hash")
-        if code_hash not in target_hashes:
-            continue
+        cell_id = cell.get("id", "")
 
         stdout = "".join(
             c.get("text", "")
@@ -182,6 +183,7 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
         results[code_hash] = ExtractedOutput(
             raw_html=raw_html,
             output_type=output_type,
+            cell_id=cell_id,
             console_html=console_html,
         )
 

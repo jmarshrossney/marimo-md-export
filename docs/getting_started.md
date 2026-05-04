@@ -53,22 +53,28 @@ This tool requires marimo notebooks in `.py` format (not `.md`).[^1]
 
 [^1]: Using `.py` format as the notebook source means you can take advantage of Python tooling (linters, type checkers etc.) and `python notebook.py` just works.
 
-### Step 1: Mark cells in your notebook
+### Step 1: Write your notebook
 
-Add a `# @output: <label>` comment inside any cell whose rendered output you want injected into the export.
-Labels must be unique within the notebook.
+Cell outputs are rendered in the export by default. No special comments are needed.
 
 ```python
-# @output: my_figure
 x = np.linspace(0, 4 * np.pi, 300)
 fig, ax = plt.subplots()
 ax.plot(x, np.sin(x))
 fig
 ```
 
-The marker can appear anywhere inside the cell — it does not need to be the first line, so you can place it after imports or setup code.
+### Step 2: Suppress unwanted outputs (optional)
 
-### Step 2: Run the export
+If a cell produces output you don't want in the export, add `# @suppress` anywhere inside the cell:
+
+```python
+# @suppress
+import numpy as np
+import matplotlib.pyplot as plt
+```
+
+### Step 3: Run the export
 
 ```sh
 marimo-md-export notebook.py output.md
@@ -91,11 +97,8 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 
 | Code | Meaning |
 |---|---|
-| `0` | Success (warnings may have been emitted to stderr) |
+| `0` | Success |
 | `1` | `marimo export` failed |
-| `2` | No `@output` markers were found in the notebook |
-
-If a marked cell has no matching output in the HTML export, a warning is printed to stderr but the export continues — the unmatched block is left unchanged.
 
 ### Subprocess behaviour
 
@@ -107,3 +110,15 @@ If a marked cell has no matching output in the HTML export, a warning is printed
 - A timeout (default 120s) prevents the subprocess from hanging indefinitely. If your notebook takes longer, use `--timeout <seconds>` or `--timeout 0` to disable the timeout.
 
 If you need to run `marimo export` interactively (e.g. to respond to prompts), use `marimo export` directly. This tool is designed for automated documentation generation.
+
+## Output anchors
+
+Each injected output is preceded by an HTML comment containing the cell's marimo ID:
+
+```markdown
+<!-- @output:aaa -->
+
+<img src="data:image/png;base64,..." alt="figure">
+```
+
+These anchors are stable for a given notebook and can be used for reference or automation.

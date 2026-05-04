@@ -6,7 +6,7 @@ from rich.console import Console
 from .export import export_html, export_md, strip_header_from_frontmatter
 from .inject import inject_outputs
 from .parse_html import extract_outputs
-from .parse_md import collect_marked_cells
+from .parse_md import collect_cells
 
 _err_console = Console(stderr=True)
 
@@ -75,20 +75,12 @@ def main(
         typer.echo(f"marimo export md failed:\n{exc}", err=True)
         raise typer.Exit(1)
 
-    marked = collect_marked_cells(md)
-    if not marked:
-        _err_console.print(
-            f"WARNING: no @output markers found in {notebook}. "
-            "Did you forget to add '# @output: <label>' comments?",
-            style="bold yellow",
-        )
-        raise typer.Exit(2)
+    cells = collect_cells(md)
 
     if verbose:
-        typer.echo(
-            f"Found {len(marked)} @output marker(s): "
-            + ", ".join(c.label for c in marked)
-        )
+        n_active = sum(1 for c in cells if not c.suppressed)
+        n_suppressed = sum(1 for c in cells if c.suppressed)
+        typer.echo(f"Found {n_active} cell(s), {n_suppressed} suppressed")
         typer.echo(f"Exporting HTML: {notebook}")
 
     try:
@@ -103,10 +95,8 @@ def main(
         if verbose:
             typer.echo(f"Wrote {html_output}")
 
-    target_hashes = {c.source_hash for c in marked}
-    outputs = extract_outputs(html, target_hashes)
-
-    result, warnings = inject_outputs(md, marked, outputs)
+    outputs = extract_outputs(html)
+    result, warnings = inject_outputs(md, cells, outputs)
 
     for warning in warnings:
         _err_console.print(f"WARNING: {warning}", style="bold yellow")

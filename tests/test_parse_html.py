@@ -88,9 +88,9 @@ def _console_cell(code: str, stdout: str, outputs: list | None = None) -> dict:
 
 
 def test_figure_extraction():
-    code = "# @output: fig\nfig"
+    code = "fig"
     html = _make_html([_figure_cell(code)])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "figure"
@@ -98,10 +98,10 @@ def test_figure_extraction():
 
 
 def test_table_extraction():
-    code = "# @output: tbl\ndf"
+    code = "df"
     rows = [{"col": "a"}, {"col": "b"}]
     html = _make_html([_table_cell(code, rows, ["col"])])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "table"
@@ -109,26 +109,18 @@ def test_table_extraction():
 
 
 def test_text_extraction():
-    code = "# @output: txt\nprint('hi')"
+    code = "print('hi')"
     html = _make_html([_text_cell(code, "hello")])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     assert results[_md5(code.strip())].output_type == "text"
 
 
-def test_unmatched_hash_ignored():
-    code = "x = 1"
-    html = _make_html([_figure_cell(code)])
-    results = extract_outputs(html, {"deadbeef" * 4})  # different hash
-    assert results == {}
-
-
 def test_multiple_cells():
-    code1 = "# @output: a\nfig1"
-    code2 = "# @output: b\nfig2"
+    code1 = "fig1"
+    code2 = "fig2"
     html = _make_html([_figure_cell(code1), _figure_cell(code2)])
-    hashes = {_md5(code1.strip()), _md5(code2.strip())}
-    results = extract_outputs(html, hashes)
+    results = extract_outputs(html)
     assert len(results) == 2
 
 
@@ -141,14 +133,14 @@ def test_no_output_cell_skipped():
         "outputs": [{"type": "data", "data": {"text/plain": ""}}],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert results == {}
 
 
 def test_console_stdout_extracted():
-    code = "# @output: con\nprint('hello')"
+    code = "print('hello')"
     html = _make_html([_console_cell(code, "hello\n")])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert "<pre>hello\n</pre>" == out.console_html
@@ -156,7 +148,7 @@ def test_console_stdout_extracted():
 
 
 def test_console_and_cell_output_combined():
-    code = "# @output: both\nprint('hi')\nfig"
+    code = "print('hi')\nfig"
     bundle = json.dumps({"image/png": _PNG_DATA})
     cell = _console_cell(
         code,
@@ -166,7 +158,7 @@ def test_console_and_cell_output_combined():
         ],
     )
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     out = results[_md5(code.strip())]
     assert "<pre>hi\n</pre>" == out.console_html
     assert out.output_type == "figure"
@@ -174,7 +166,7 @@ def test_console_and_cell_output_combined():
 
 
 def test_stderr_ignored():
-    code = "# @output: err\nimport sys; print('bad', file=sys.stderr)"
+    code = "import sys; print('bad', file=sys.stderr)"
     cell = {
         "code_hash": _md5(code.strip()),
         "id": "eee",
@@ -182,25 +174,25 @@ def test_stderr_ignored():
         "outputs": [],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert results == {}
 
 
 def test_no_session_cells_match():
     html = b"<html><body>no script here</body></html>"
-    results = extract_outputs(html, {"deadbeef" * 4})
+    results = extract_outputs(html)
     assert results == {}
 
 
 def test_bracket_counting_falls_off_end():
     # Malformed HTML where bracket counting never reaches depth 0
     html = b'<script>{"session": {"cells": [{"code_hash": "abc"}</script>'
-    results = extract_outputs(html, {"deadbeef" * 4})
+    results = extract_outputs(html)
     assert results == {}
 
 
 def test_marimo_table_not_found():
-    code = "# @output: tbl\ndf"
+    code = "df"
     # HTML that has <marimo-ui-element> but no <marimo-table>
     html_val = "<marimo-ui-element>not a table</marimo-ui-element>"
     import html as html_module
@@ -213,7 +205,7 @@ def test_marimo_table_not_found():
         "outputs": [{"type": "data", "data": {"text/html": escaped}}],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     # Should return the original HTML unchanged (not classified as table)
     assert len(results) == 1
     out = results[_md5(code.strip())]
@@ -221,7 +213,7 @@ def test_marimo_table_not_found():
 
 
 def test_table_data_json_decode_error():
-    code = "# @output: tbl\ndf"
+    code = "df"
     # Invalid JSON in data-data
     marimo_table = (
         "<marimo-ui-element>"
@@ -238,13 +230,13 @@ def test_table_data_json_decode_error():
         "outputs": [{"type": "data", "data": {"text/html": escaped}}],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     # Should fall back to original HTML
     assert len(results) == 1
 
 
 def test_field_types_json_decode_error():
-    code = "# @output: tbl\ndf"
+    code = "df"
     rows = [{"col": "a"}]
     data_inner = json.dumps(rows).replace('"__NaN__"', "NaN")
     data_data = json.dumps(data_inner)
@@ -265,7 +257,7 @@ def test_field_types_json_decode_error():
         "outputs": [{"type": "data", "data": {"text/html": escaped}}],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "table"
@@ -274,7 +266,7 @@ def test_field_types_json_decode_error():
 
 
 def test_nan_in_string_value_not_replaced():
-    code = "# @output: tbl\ndf"
+    code = "df"
     # A string column value "NaN handling" should NOT have its NaN replaced
     # with null — only bare NaN tokens (word boundaries) should be replaced.
     # Build data-data manually: use NaN as bare values where appropriate
@@ -295,7 +287,7 @@ def test_nan_in_string_value_not_replaced():
         "outputs": [{"type": "data", "data": {"text/html": escaped}}],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "table"
@@ -304,7 +296,7 @@ def test_nan_in_string_value_not_replaced():
 
 
 def test_marimo_mimebundle_json_decode_error():
-    code = "# @output: fig\nfig"
+    code = "fig"
     # Invalid JSON in marimo mimebundle
     cell = {
         "code_hash": _md5(code.strip()),
@@ -318,13 +310,13 @@ def test_marimo_mimebundle_json_decode_error():
         ],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     # Should not crash; bundle becomes {} and no figure is extracted
     assert results == {}
 
 
 def test_generic_html_table():
-    code = "# @output: tbl\ndf"
+    code = "df"
     html_val = "<table><tr><th>A</th></tr><tr><td>1</td></tr></table>"
     import html as html_module
 
@@ -336,7 +328,7 @@ def test_generic_html_table():
         "outputs": [{"type": "data", "data": {"text/html": escaped}}],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "table"
@@ -356,7 +348,7 @@ def test_cells_json_decode_error():
     html_bytes = f"""<!DOCTYPE html><html><head></head><body>
     <script data-marimo="true">{script}</script>
     </body></html>""".encode("utf-8")
-    results = extract_outputs(html_bytes, {"deadbeef" * 4})
+    results = extract_outputs(html_bytes)
     assert results == {}
 
 
@@ -371,21 +363,30 @@ def test_brackets_inside_string_values():
         "outputs": [{"type": "data", "data": {"text/plain": "hello"}}],
     }
     html = _make_html([cell])
-    results = extract_outputs(html, {fake_hash})
+    results = extract_outputs(html)
     assert fake_hash in results
     assert results[fake_hash].output_type == "text"
 
 
 def test_brackets_in_output_data():
-    code = "# @output: bktd\nx"
+    code = "x"
     # Cell output data containing brackets inside a JSON string value,
     # e.g. a text/plain value like "arr[0]". The old bracket-counting
     # parser would break here.
     cell = _text_cell(code, "arr[0] = 42")
     html = _make_html([cell])
-    results = extract_outputs(html, {_md5(code.strip())})
+    results = extract_outputs(html)
     assert len(results) == 1
     assert "arr[0]" in results[_md5(code.strip())].raw_html
+
+
+def test_cell_id_extracted():
+    code = "fig"
+    html = _make_html([_figure_cell(code)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = list(results.values())[0]
+    assert out.cell_id == "aaa"
 
 
 def test_table_html_from_marimo_table_no_marimo_table():

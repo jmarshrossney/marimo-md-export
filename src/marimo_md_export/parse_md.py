@@ -1,43 +1,33 @@
 import hashlib
 import re
 
-from .models import MarkedCell
+from .models import Cell
 
 # Matches fenced code blocks produced by `marimo export md`
 _BLOCK_RE = re.compile(r"(```python \{\.marimo\}\n(.*?)```)", re.DOTALL)
-_MARKER_RE = re.compile(r"#\s*@output:\s*(\S+)")
+_SUPPRESS_RE = re.compile(r"#\s*@suppress")
 
 
 def _md5(text: str) -> str:
     return hashlib.md5(text.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
-def collect_marked_cells(md: str) -> list[MarkedCell]:
-    """Return one MarkedCell for each fenced block that contains an @output marker."""
-    seen_labels: set[str] = set()
-    results: list[MarkedCell] = []
+def collect_cells(md: str) -> list[Cell]:
+    """Return one Cell for each fenced code block in the markdown."""
+    results: list[Cell] = []
 
     for block_match in _BLOCK_RE.finditer(md):
         block_text = block_match.group(1)
         source = block_match.group(2)
 
-        marker = _MARKER_RE.search(source)
-        if marker is None:
-            continue
-
-        label = marker.group(1)
-        if label in seen_labels:
-            raise ValueError(
-                f"Duplicate @output label {label!r} — each label must be unique"
-            )
-        seen_labels.add(label)
+        suppressed = _SUPPRESS_RE.search(source) is not None
 
         results.append(
-            MarkedCell(
-                label=label,
+            Cell(
                 source=source,
                 source_hash=_md5(source.strip()),
                 block_text=block_text,
+                suppressed=suppressed,
             )
         )
 
