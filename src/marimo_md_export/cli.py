@@ -50,11 +50,11 @@ def main(
         help="Run marimo export in an isolated uv environment. "
         "Without this flag, marimo's own sandbox prompt is suppressed.",
     ),
-    timeout: int = typer.Option(
-        120,
+    timeout: int | None = typer.Option(
+        None,
         "--timeout",
         help="Maximum seconds to wait for each marimo export subprocess "
-        "(set to 0 to disable).",
+        "(default: no timeout).",
     ),
 ) -> None:
     """Export a marimo notebook to markdown with rendered outputs injected.
