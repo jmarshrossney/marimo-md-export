@@ -103,12 +103,7 @@ def main(
     target_hashes = {c.source_hash for c in marked}
     outputs = extract_outputs(html, target_hashes)
 
-    # Attach labels to outputs
-    for cell in marked:
-        if cell.source_hash in outputs:
-            outputs[cell.source_hash].label = cell.label
-
-    result = inject_outputs(md, outputs)
+    result = inject_outputs(md, marked, outputs)
 
     result = strip_header_from_frontmatter(result)
 

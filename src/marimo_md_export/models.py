@@ -16,7 +16,7 @@ class MarkedCell:
 class ExtractedOutput:
     """The rendered output scraped from the HTML export for one cell."""
 
-    label: str
     raw_html: str
     output_type: str  # "figure" | "table" | "text" | "unknown"
+    label: str = ""
     console_html: str = field(default="")
