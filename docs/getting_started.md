@@ -53,22 +53,28 @@ This tool requires marimo notebooks in `.py` format (not `.md`).[^1]
 
 [^1]: Using `.py` format as the notebook source means you can take advantage of Python tooling (linters, type checkers etc.) and `python notebook.py` just works.
 
-### Step 1: Mark cells in your notebook
+### Step 1: Write your notebook
 
-Add a `# @output: <label>` comment inside any cell whose rendered output you want injected into the export.
-Labels must be unique within the notebook.
+Cell outputs are rendered in the export by default. No special comments are needed.
 
 ```python
-# @output: my_figure
 x = np.linspace(0, 4 * np.pi, 300)
 fig, ax = plt.subplots()
 ax.plot(x, np.sin(x))
 fig
 ```
 
-The marker can appear anywhere inside the cell — it does not need to be the first line, so you can place it after imports or setup code.
+### Step 2: Suppress unwanted outputs (optional)
 
-### Step 2: Run the export
+If a cell produces output you don't want in the export, add `# @suppress` anywhere inside the cell:
+
+```python
+# @suppress
+import numpy as np
+import matplotlib.pyplot as plt
+```
+
+### Step 3: Run the export
 
 ```sh
 marimo-md-export notebook.py output.md
@@ -83,27 +89,14 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 | `--html-output PATH` | If provided, also save the intermediate HTML export to this path |
 | `--marimo-args TEXT` | Extra arguments forwarded to `marimo export` (space-separated) |
 | `--sandbox`/`--no-sandbox` | Run `marimo export` in an isolated uv environment |
-| `--timeout SECONDS` | Maximum seconds to wait for each `marimo export` subprocess (default 120; set to 0 to disable) |
+| `--timeout SECONDS` | Maximum seconds to wait for each `marimo export` subprocess (default: no timeout) |
 | `-v`, `--verbose` | Print progress to stdout |
 | `-h`, `--help` | Show help and exit |
 
-#### Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Success (warnings may have been emitted to stderr) |
-| `1` | `marimo export` failed |
-| `2` | No `@output` markers were found in the notebook |
 
-If a marked cell has no matching output in the HTML export, a warning is printed to stderr but the export continues — the unmatched block is left unchanged.
+## Gotchas
 
-### Subprocess behaviour
-
-`marimo-md-export` invokes `marimo export` as a subprocess. To ensure fully non-interactive operation:
-
-- `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. The intermediate files written by `marimo export` are temporary and deleted after the tool finishes.
-- `MPLBACKEND=Agg` is set in the subprocess environment, preventing matplotlib from trying to open an interactive display window (which would hang in a headless context).
-- `MARIMO_MANAGE_SCRIPT_METADATA=true` is set, suppressing marimo's sandbox confirmation prompt when a notebook has inline PEP 723 dependencies but `--sandbox` is not requested.
-- A timeout (default 120s) prevents the subprocess from hanging indefinitely. If your notebook takes longer, use `--timeout <seconds>` or `--timeout 0` to disable the timeout.
-
-If you need to run `marimo export` interactively (e.g. to respond to prompts), use `marimo export` directly. This tool is designed for automated documentation generation.
+**Existing files are overwritten by default.**
+`marimo-md-export` invokes `marimo export` as a subprocess. 
+To ensure fully non-interactive operation, `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. 

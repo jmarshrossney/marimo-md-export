@@ -2,14 +2,13 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class MarkedCell:
-    """A fenced code block in the markdown that carries an @output marker."""
+class Cell:
+    """A fenced code block in the markdown export."""
 
-    label: str
     source: str
-    # MD5 hex digest of source.strip() — matches marimo's code_hash in HTML export
     source_hash: str
     block_text: str
+    suppressed: bool = False
 
 
 @dataclass
@@ -17,6 +16,6 @@ class ExtractedOutput:
     """The rendered output scraped from the HTML export for one cell."""
 
     raw_html: str
-    output_type: str  # "figure" | "table" | "text" | "unknown"
-    label: str = ""
+    output_type: str
+    cell_id: str = ""
     console_html: str = field(default="")

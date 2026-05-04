@@ -49,7 +49,6 @@ def _(mo):
 
 @app.cell
 def _(np, plt):
-    # @output: fig_wave
     x = np.linspace(0, 4 * np.pi, 300)
     fig, ax = plt.subplots(figsize=(7, 3))
     ax.plot(x, np.sin(x), label=r"$\sin(x)$")
@@ -70,7 +69,6 @@ def _(mo):
 
 @app.cell
 def _(np, pd, x):
-    # @output: table_summary
     df = pd.DataFrame(
         {
             "Quantity": ["Mean", "Variance", "Skewness"],
@@ -96,7 +94,6 @@ def _(mo):
 
 @app.cell
 def _(np, x):
-    # @output: text_stats
     print(f"Number of points: {len(x)}")
     print(f"x range: [{x[0]:.4f}, {x[-1]:.4f}]")
     print(f"Mean of sin(x): {np.mean(np.sin(x)):.6f}")

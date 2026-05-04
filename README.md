@@ -14,13 +14,20 @@ document with embedded figures (as base64 `<img>` tags) and tables (as GFM or HT
 
 ## Quick start
 
-Mark cells in your marimo `.py` notebook with `# @output: <label>`:
+Write your marimo `.py` notebook — cell outputs are rendered by default:
 
 ```python
-# @output: my_figure
 fig, ax = plt.subplots()
 ax.plot(x, np.sin(x))
 fig
+```
+
+To suppress output for a cell, add `# @suppress`:
+
+```python
+# @suppress
+ax_diag.hist(residuals, bins=50)  # diagnostic plot, not for publication
+fig_diag
 ```
 
 Then run:
@@ -58,8 +65,8 @@ docs:
   zensical build
 ```
 
-This runs `marimo-md-export` to produce a self-contained markdown page (with any
-`# @output:` cells injected as figures/tables), then builds the site.
+This runs `marimo-md-export` to produce a self-contained markdown page (with cell
+outputs injected as figures/tables), then builds the site.
 
 ## Development
 
