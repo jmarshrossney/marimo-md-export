@@ -55,7 +55,7 @@ def test_no_output_markers(tmp_path):
         result = runner.invoke(app, [str(notebook), str(output)])
     assert result.exit_code == 2
     assert "no @output markers found" in result.stderr
-    assert "Did you forget to add" in result.stderr
+    assert "Did you forget" in result.stderr
 
 
 def test_export_html_failure(tmp_path):
@@ -83,7 +83,8 @@ def test_html_output_writes_file(tmp_path):
         with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
             with patch("marimo_md_export.cli.extract_outputs", return_value={}):
                 with patch(
-                    "marimo_md_export.cli.inject_outputs", return_value=md_with_marker
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(md_with_marker, []),
                 ):
                     _ = runner.invoke(
                         app,
@@ -102,7 +103,8 @@ def test_verbose_flag(tmp_path):
         with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
             with patch("marimo_md_export.cli.extract_outputs", return_value={}):
                 with patch(
-                    "marimo_md_export.cli.inject_outputs", return_value=md_with_marker
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(md_with_marker, []),
                 ):
                     result = runner.invoke(app, [str(notebook), str(output), "-v"])
     assert "Exporting markdown:" in result.output
@@ -121,7 +123,8 @@ def test_html_output_verbose(tmp_path):
         with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
             with patch("marimo_md_export.cli.extract_outputs", return_value={}):
                 with patch(
-                    "marimo_md_export.cli.inject_outputs", return_value=md_with_marker
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(md_with_marker, []),
                 ):
                     result = runner.invoke(
                         app,

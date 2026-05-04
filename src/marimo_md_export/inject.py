@@ -1,10 +1,6 @@
-import sys
-import warnings
-
 from bs4 import BeautifulSoup
 
 from .models import ExtractedOutput, MarkedCell
-from .parse_md import collect_marked_cells
 
 
 def _table_to_gfm(html: str) -> str | None:
@@ -28,10 +24,17 @@ def _table_to_gfm(html: str) -> str | None:
 
     header = rows[0]
     body = rows[1:]
-    sep = ["---"] * len(header)
+
+    # Reject tables with inconsistent row widths — fall back to HTML
+    ncols = len(header)
+    if any(len(row) != ncols for row in rows):
+        return None
+
+    sep = ["---"] * ncols
 
     def _row(cells: list[str]) -> str:
-        return "| " + " | ".join(cells) + " |"
+        escaped = [c.replace("|", "\\|") for c in cells]
+        return "| " + " | ".join(escaped) + " |"
 
     lines = [_row(header), _row(sep), *(_row(r) for r in body)]
     return "\n".join(lines)
@@ -55,27 +58,26 @@ def _format_output(output: ExtractedOutput) -> str:
 
 def inject_outputs(
     md: str,
+    marked_cells: list[MarkedCell],
     outputs: dict[str, ExtractedOutput],
-) -> str:
+) -> tuple[str, list[str]]:
     """Inject rendered outputs into the markdown after each marked code block.
 
-    `outputs` maps source_hash → ExtractedOutput (label field will be updated
-    to the human-readable label from the @output marker).
-    """
-    marked_cells: list[MarkedCell] = collect_marked_cells(md)
+    marked_cells should come from collect_marked_cells(md).  outputs maps
+    source_hash → ExtractedOutput.  Labels are set from the corresponding
+    MarkedCell during injection.
 
+    Returns (result_markdown, warnings) where warnings is a list of
+    human-readable messages for outputs that had no matching rendered data.
+    """
     result = md
+    warnings: list[str] = []
     for cell in marked_cells:
         matched = outputs.get(cell.source_hash)
         if matched is None:
-            warnings.warn(
-                f"WARNING: no output found for @output:{cell.label} "
-                f"(hash {cell.source_hash[:8]})",
-                stacklevel=2,
-            )
-            print(
-                f"WARNING: no output found for @output:{cell.label}",
-                file=sys.stderr,
+            warnings.append(
+                f"no output found for @output:{cell.label} "
+                f"(hash {cell.source_hash[:8]})"
             )
             continue
 
@@ -85,4 +87,4 @@ def inject_outputs(
             cell.block_text, cell.block_text + "\n\n" + formatted, 1
         )
 
-    return result
+    return result, warnings

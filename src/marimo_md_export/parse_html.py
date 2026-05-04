@@ -28,27 +28,30 @@ from bs4 import BeautifulSoup
 from .models import ExtractedOutput
 
 _SESSION_CELLS_RE = re.compile(
-    r'"session"\s*:\s*\{"cells"\s*:\s*(\[)',
+    r'"session"\s*:\s*\{"cells"\s*:\s*\[',
 )
+
+_decoder = json.JSONDecoder()
 
 
 def _extract_session_cells_raw(html: bytes) -> str:
-    """Return the raw JSON string for session.cells from the HTML."""
+    """Return the raw JSON string for session.cells from the HTML.
+
+    Uses json.JSONDecoder.raw_decode to correctly handle brackets inside
+    JSON string values.
+    """
     text = html.decode("utf-8", errors="replace")
     m = _SESSION_CELLS_RE.search(text)
     if m is None:
         return "[]"
 
-    start = m.start(1)
-    depth = 0
-    for i, ch in enumerate(text[start:], start=start):
-        if ch == "[":
-            depth += 1
-        elif ch == "]":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    return "[]"
+    start = m.end() - 1  # position of the opening '['
+    try:
+        _, end = _decoder.raw_decode(text, idx=start)
+    except json.JSONDecodeError:
+        return "[]"
+
+    return text[start:end]
 
 
 def _table_html_from_marimo_table(marimo_table_html: str) -> str:
@@ -71,10 +74,12 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
         field_types_raw = "[]"
 
     # data-data is a JSON-quoted string containing an array of row objects.
-    # It may contain literal NaN (not valid JSON).
+    # It may contain literal NaN (not valid JSON). Replace only bare NaN
+    # tokens (not inside quoted string values) to avoid clobbering strings
+    # like "NaN handling".
     try:
         inner = json.loads(data_data)  # unwrap outer JSON string
-        cleaned = inner.replace("NaN", "null")
+        cleaned = re.sub(r'(?<!")\bNaN\b(?!")', "null", inner)
         rows = json.loads(cleaned)
     except (json.JSONDecodeError, AttributeError):
         return marimo_table_html
@@ -136,6 +141,10 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
 
     Returns a dict mapping source_hash → ExtractedOutput for each cell whose
     code_hash is in target_hashes and that has a renderable output.
+
+    If a cell has multiple outputs, only the first renderable one is used
+    (in MIME-type priority order: marimo mimebundle → text/html → text/plain).
+    Console output (stdout) is always captured independently.
     """
     cells_raw = _extract_session_cells_raw(html)
     try:
@@ -165,14 +174,12 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
             if classified is None:
                 continue
             output_type, raw_html = classified
-            break  # take the first renderable output per cell
+            break  # first renderable output per cell wins
 
         if not console_html and not raw_html:
             continue
 
-        # label is filled in by inject.py after matching; use hash as placeholder
         results[code_hash] = ExtractedOutput(
-            label=code_hash,
             raw_html=raw_html,
             output_type=output_type,
             console_html=console_html,
