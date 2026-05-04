@@ -38,8 +38,7 @@ def _extract_session_cells_raw(html: bytes) -> str:
     """Return the raw JSON string for session.cells from the HTML.
 
     Uses json.JSONDecoder.raw_decode to correctly handle brackets inside
-    JSON string values, which the previous bracket-counting approach could
-    mis-parse.
+    JSON string values.
     """
     text = html.decode("utf-8", errors="replace")
     m = _SESSION_CELLS_RE.search(text)
@@ -142,6 +141,10 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
 
     Returns a dict mapping source_hash → ExtractedOutput for each cell whose
     code_hash is in target_hashes and that has a renderable output.
+
+    If a cell has multiple outputs, only the first renderable one is used
+    (in MIME-type priority order: marimo mimebundle → text/html → text/plain).
+    Console output (stdout) is always captured independently.
     """
     cells_raw = _extract_session_cells_raw(html)
     try:
@@ -171,14 +174,12 @@ def extract_outputs(html: bytes, target_hashes: set[str]) -> dict[str, Extracted
             if classified is None:
                 continue
             output_type, raw_html = classified
-            break  # take the first renderable output per cell
+            break  # first renderable output per cell wins
 
         if not console_html and not raw_html:
             continue
 
-        # label is filled in by inject.py after matching; use hash as placeholder
         results[code_hash] = ExtractedOutput(
-            label=code_hash,
             raw_html=raw_html,
             output_type=output_type,
             console_html=console_html,
