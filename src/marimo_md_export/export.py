@@ -44,7 +44,7 @@ def _strip_header_key(frontmatter: str) -> str | None:
 
 
 def _run_with_visible_output(
-    cmd: list[str], *, env: dict[str, str], timeout: float | None
+    cmd: list[str], *, env: dict[str, str], timeout: int | None
 ) -> subprocess.CompletedProcess[str]:
     """Run *cmd* with stdout inherited (visible) and stderr captured."""
     stderr_lines: list[str] = []
@@ -76,7 +76,7 @@ def export_html(
     notebook: Path,
     extra_args: list[str] | None = None,
     sandbox: bool = False,
-    timeout: float | None = 120,
+    timeout: int | None = 120,
 ) -> bytes:
     with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as f:
         tmp = Path(f.name)
@@ -116,7 +116,7 @@ def export_html(
 def export_md(
     notebook: Path,
     sandbox: bool = False,
-    timeout: float | None = 120,
+    timeout: int | None = 120,
 ) -> str:
     with tempfile.NamedTemporaryFile(suffix=".md", delete=False) as f:
         tmp = Path(f.name)
