@@ -1,12 +1,46 @@
 import os
-import re
 import subprocess
 import sys
 import tempfile
 import threading
 from pathlib import Path
 
-_HEADER_KEY_RE = re.compile(r"^header:.*\n(?:[ \t].*\n)*", re.MULTILINE)
+
+def _strip_header_key(frontmatter: str) -> str | None:
+    """Remove the 'header:' key (with its multiline value) from a YAML frontmatter block.
+
+    Returns None if the header key was not found. Handles YAML block scalars
+    (|-, |, >-, >) and plain multiline values (indented continuation lines).
+    """
+    lines = frontmatter.split("\n")
+    result_lines: list[str] = []
+    i = 0
+    found = False
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.lstrip()
+        if not stripped.startswith("header:"):
+            result_lines.append(line)
+            i += 1
+            continue
+
+        found = True
+        value_part = line[len("header:"):].strip()
+        # Detect block scalar indicators: |, |-, >, >-
+        is_block = value_part in ("|", "|-", ">", ">-")
+        if is_block:
+            # Skip indented continuation lines
+            i += 1
+            while i < len(lines) and lines[i].startswith(("  ", "\t")):
+                i += 1
+        else:
+            # Plain value (possibly none after the colon)
+            i += 1
+
+    if not found:
+        return None
+
+    return "\n".join(result_lines)
 
 
 def _run_with_visible_output(
@@ -108,7 +142,14 @@ def export_md(
 
 
 def strip_header_from_frontmatter(md: str) -> str:
-    """Remove the 'header:' key from YAML frontmatter if present."""
+    """Remove the 'header:' key from YAML frontmatter if present.
+
+    Parses the frontmatter line-by-line, removes the header key (including
+    any multiline block-scalar or indented continuation lines), then
+    reconstructs the frontmatter. If only a title key remains, it is
+    preserved cleanly. If the frontmatter is empty after removal, it is
+    dropped entirely.
+    """
     if not md.startswith("---"):
         return md
 
@@ -123,11 +164,14 @@ def strip_header_from_frontmatter(md: str) -> str:
     frontmatter = md[:after_close]
     rest = md[after_close:]
 
-    stripped = _HEADER_KEY_RE.sub("", frontmatter)
-    if stripped == frontmatter:
+    stripped = _strip_header_key(frontmatter)
+    if stripped is None:
         return md
 
-    inner = stripped[len("---\n") : stripped.rfind("\n---")]
+    inner_start = len("---\n")
+    inner_end = stripped.rfind("\n---")
+    inner = stripped[inner_start:inner_end]
+
     if not inner.strip():
         return rest.lstrip("\n")
 
