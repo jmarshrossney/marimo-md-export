@@ -32,7 +32,6 @@ uv tool install marimo-md-export   # or: pipx install marimo-md-export
 ## Development
 
 ```sh
-uv sync
-just test
-just docs
+uv sync  # sync packages
+just  # run lint, typecheck, test, build docs
 ```
