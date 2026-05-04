@@ -2,8 +2,8 @@
 
 ## What this is
 
-A tool that wraps `marimo export`, extracts rendered outputs from the HTML export, and injects them into the markdown export at positions identified by `# @output: <label>` markers in cell source.
-The result is a self-contained markdown document with embedded figures (as base64 `<img>` tags) and tables (as GFM or HTML tables).
+A tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell. 
+The result is a self-contained markdown document with embedded figures, tables, and other outputs.
 
 See the [example page](example.md) for output produced by `marimo-md-export` itself, running the demo notebook included in this repository.
 
@@ -20,19 +20,23 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 
 ## How it works
 
-1. Runs `marimo export md --force` to produce a markdown representation of the notebook (_without_ rendered outputs!), with cell sources in fenced ` ```python {.marimo} ` blocks.
-2. Runs `marimo export html --force` to produce the fully-rendered HTML (with executed outputs).
-3. Finds every cell marked `# @output: <label>` in the markdown export.
-4. Matches each marked cell to its rendered output in the HTML export by hashing the cell source.
-5. Injects each output into the markdown immediately after its code block.
-
-Both `marimo export` subprocesses run with `MPLBACKEND=Agg` (headless matplotlib) and `MARIMO_MANAGE_SCRIPT_METADATA=true` (suppress sandbox prompts). A 120s timeout prevents hung subprocesses from blocking indefinitely.
+1. Runs `marimo export md` to produce a markdown representation of the notebook (_without_ rendered outputs!), with cell sources in fenced ` ```python {.marimo}` blocks.
+2. Runs `marimo export html` to produce the fully-rendered HTML (with executed outputs).
+3. Collects all fenced code blocks from the markdown export (skipping cells with `# @suppress`).
+4. Matches each cell to its rendered output in the HTML export by hashing the cell source.
+5. Injects each output into the markdown immediately after its code block, labelled with the cell's marimo ID.
 
 Figures are embedded as base64 `<img>` tags. 
 Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
 
 ## Caveats
 
-**Embedded figures produce large files.** 
-Figures are stored as base64-encoded PNGs inline in the markdown. A notebook with many plots can produce a multi-megabyte file.
+### Embedded figures produce large files.
 
+Figures are stored as base64-encoded PNGs inline in the markdown.
+A notebook with many plots can produce a multi-megabyte file.
+
+To mitigate this:
+
+- Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
+- Consider using `# @suppress` in cells whose outputs you don't need.

@@ -93,32 +93,10 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 | `-v`, `--verbose` | Print progress to stdout |
 | `-h`, `--help` | Show help and exit |
 
-#### Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | `marimo export` failed |
 
-### Subprocess behaviour
+## Gotchas
 
-`marimo-md-export` invokes `marimo export` as a subprocess. To ensure fully non-interactive operation:
-
-- `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. The intermediate files written by `marimo export` are temporary and deleted after the tool finishes.
-- `MPLBACKEND=Agg` is set in the subprocess environment, preventing matplotlib from trying to open an interactive display window (which would hang in a headless context).
-- `MARIMO_MANAGE_SCRIPT_METADATA=true` is set, suppressing marimo's sandbox confirmation prompt when a notebook has inline PEP 723 dependencies but `--sandbox` is not requested.
-- A timeout (default 120s) prevents the subprocess from hanging indefinitely. If your notebook takes longer, use `--timeout <seconds>` or `--timeout 0` to disable the timeout.
-
-If you need to run `marimo export` interactively (e.g. to respond to prompts), use `marimo export` directly. This tool is designed for automated documentation generation.
-
-## Output anchors
-
-Each injected output is preceded by an HTML comment containing the cell's marimo ID:
-
-```markdown
-<!-- @output:aaa -->
-
-<img src="data:image/png;base64,..." alt="figure">
-```
-
-These anchors are stable for a given notebook and can be used for reference or automation.
+**Existing files are overwritten by default.**
+`marimo-md-export` invokes `marimo export` as a subprocess. 
+To ensure fully non-interactive operation, `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. 
