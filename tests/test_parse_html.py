@@ -174,7 +174,7 @@ def test_console_and_cell_output_combined():
     assert _PNG_DATA in out.raw_html
 
 
-def test_stderr_ignored():
+def test_stderr_captured():
     code = "import sys; print('bad', file=sys.stderr)"
     cell = {
         "code_hash": _md5(code.strip()),
@@ -184,7 +184,10 @@ def test_stderr_ignored():
     }
     html = _make_html([cell])
     results = extract_outputs(html)
-    assert results == {}
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert "bad" in out.stderr_html
+    assert 'class="stderr"' in out.stderr_html
 
 
 def test_no_session_cells_match():
@@ -591,3 +594,38 @@ def test_error_with_console_output():
     out = results[_md5(code.strip())]
     assert out.console_html == "<pre>before\n</pre>"
     assert out.output_type == "error"
+
+
+def test_stdout_and_stderr_both_captured():
+    code = "print('out')\nprint('err', file=sys.stderr)"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "fff",
+        "console": [
+            {"name": "stdout", "text": "out\n"},
+            {"name": "stderr", "text": "err\n"},
+        ],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert "<pre>out\n</pre>" == out.console_html
+    assert "err" in out.stderr_html
+    assert 'class="stderr"' in out.stderr_html
+    assert out.raw_html == ""
+
+
+def test_stderr_only_captured():
+    code = "import logging; logging.warning('watch out')"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ggg",
+        "console": [{"name": "stderr", "text": "WARNING:root:watch out\n"}],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.console_html == ""
+    assert "WARNING:root:watch out" in out.stderr_html

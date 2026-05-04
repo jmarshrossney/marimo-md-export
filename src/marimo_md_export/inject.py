@@ -46,6 +46,8 @@ def _format_output(output: ExtractedOutput) -> str:
     parts = []
     if output.console_html:
         parts.append(output.console_html)
+    if output.stderr_html:
+        parts.append(output.stderr_html)
     if output.raw_html:
         if output.output_type == "table":
             gfm = _table_to_gfm(output.raw_html)

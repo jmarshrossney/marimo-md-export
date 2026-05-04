@@ -178,7 +178,7 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
 
     If a cell has multiple outputs, only the first renderable one is used
     (in MIME-type priority order: marimo mimebundle → text/html → text/plain).
-    Console output (stdout) is always captured independently.
+    Console output (stdout and stderr) is always captured independently.
     """
     cells_raw = _extract_session_cells_raw(html)
     try:
@@ -199,6 +199,13 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
         )
         console_html = f"<pre>{escape(stdout)}</pre>" if stdout.strip() else ""
 
+        stderr = "".join(
+            c.get("text", "")
+            for c in cell.get("console", [])
+            if c.get("name") == "stderr"
+        )
+        stderr_html = f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
+
         raw_html = ""
         output_type = "unknown"
         for output in cell.get("outputs", []):
@@ -215,7 +222,7 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             output_type, raw_html = classified
             break  # first renderable output per cell wins
 
-        if not console_html and not raw_html:
+        if not console_html and not stderr_html and not raw_html:
             continue
 
         results[code_hash] = ExtractedOutput(
@@ -223,6 +230,7 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             output_type=output_type,
             cell_id=cell_id,
             console_html=console_html,
+            stderr_html=stderr_html,
         )
 
     return results

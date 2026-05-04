@@ -192,3 +192,21 @@ def test_error_output_wrapped_in_div():
     result, warnings = _inject(md, outputs)
     assert '<div class="error">' in result
     assert "ZeroDivisionError" in result
+
+
+def test_stderr_injected_after_stdout():
+    source = "print('out')\nprint('err', file=sys.stderr)"
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    output = ExtractedOutput(
+        raw_html="",
+        output_type="unknown",
+        cell_id="aaa",
+        console_html="<pre>out\n</pre>",
+        stderr_html='<pre class="stderr">err\n</pre>',
+    )
+    outputs = {cells[0].source_hash: output}
+    result, warnings = _inject(md, outputs)
+    assert "<pre>out\n</pre>" in result
+    assert '<pre class="stderr">err\n</pre>' in result
+    assert result.index("<pre>out\n</pre>") < result.index('<pre class="stderr">err\n</pre>')
