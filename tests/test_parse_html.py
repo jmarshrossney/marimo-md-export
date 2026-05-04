@@ -75,6 +75,15 @@ def _text_cell(code: str, text: str) -> dict:
     }
 
 
+def _json_cell(code: str, obj: object) -> dict:
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "eee",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"application/json": json.dumps(obj)}}],
+    }
+
+
 def _console_cell(code: str, stdout: str, outputs: list | None = None) -> dict:
     return {
         "code_hash": _md5(code.strip()),
@@ -395,3 +404,91 @@ def test_table_html_from_marimo_table_no_marimo_table():
     # HTML that doesn't contain <marimo-table> element
     result = _table_html_from_marimo_table("<div>not a table</div>")
     assert result == "<div>not a table</div>"
+
+
+def test_json_dict_extraction():
+    code = "my_dict"
+    html = _make_html([_json_cell(code, {"name": "Alice", "age": 30})])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "<pre><code>" in out.raw_html
+    assert "&quot;name&quot;" in out.raw_html or '"name"' in out.raw_html
+    assert "Alice" in out.raw_html
+
+
+def test_json_list_extraction():
+    code = "my_list"
+    html = _make_html([_json_cell(code, [1, 2, 3])])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "1" in out.raw_html
+
+
+def test_json_nested_extraction():
+    code = "nested"
+    obj = {"key": [1, {"inner": True}]}
+    html = _make_html([_json_cell(code, obj)])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "inner" in out.raw_html
+
+
+def test_json_invalid_fallback():
+    code = "bad_json"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "zzz",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/json": "not valid json {["}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "not valid json" in out.raw_html
+
+
+def test_json_priority_over_html():
+    code = "obj_with_both"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "zzz",
+        "console": [],
+        "outputs": [
+            {
+                "type": "data",
+                "data": {
+                    "application/json": json.dumps({"key": "val"}),
+                    "text/html": "<p>html content</p>",
+                },
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+
+
+def test_json_combined_with_console():
+    code = "print('hi')\nmy_dict"
+    cell = _console_cell(
+        code,
+        "hi\n",
+        outputs=[
+            {"type": "data", "data": {"application/json": json.dumps({"a": 1})}},
+        ],
+    )
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.console_html == "<pre>hi\n</pre>"
+    assert out.output_type == "json"

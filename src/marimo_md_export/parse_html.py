@@ -13,8 +13,9 @@
 #
 # Supported MIME types:
 #   application/vnd.marimo+mimebundle  — JSON string; "image/png" key → figure
+#   application/json                   — pretty-printed JSON (dicts, lists, etc.)
 #   text/html                          — may contain <marimo-table> web component
-#   text/markdown                      — rendered markdown
+#   text/markdown                      — rendered markdown (not captured; already in MD export)
 #   text/plain                         — plain text
 #
 # Tables are stored as <marimo-table data-data='...'> web components.
@@ -117,6 +118,16 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
         src = bundle.get("image/png")
         if src:
             return "figure", f'<img src="{escape(src, quote=True)}" alt="figure">'
+
+    # JSON output (dicts, lists, tuples)
+    json_val = data.get("application/json")
+    if json_val:
+        try:
+            parsed = json.loads(json_val)
+            formatted = json.dumps(parsed, indent=2, ensure_ascii=False)
+        except (json.JSONDecodeError, TypeError):
+            formatted = json_val
+        return "json", f"<pre><code>{escape(formatted)}</code></pre>"
 
     # HTML output (may be a marimo-table web component)
     html_val = data.get("text/html")
