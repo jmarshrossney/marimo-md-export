@@ -1,12 +1,13 @@
 _:
-  @just --list
+  @just lint typecheck test docs
 
 # Format and lint the package using ruff, and lint the examples using marimo.
 lint:
   ruff format
-  ruff check
+  ruff check --fix
   marimo check examples/notebook.py
 
+# Same as `lint`, but doesn't make any formatting changes.
 lint-check:
   ruff format --check
   ruff check

@@ -82,6 +82,8 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 |---|---|
 | `--html-output PATH` | If provided, also save the intermediate HTML export to this path |
 | `--marimo-args TEXT` | Extra arguments forwarded to `marimo export` (space-separated) |
+| `--sandbox`/`--no-sandbox` | Run `marimo export` in an isolated uv environment |
+| `--timeout SECONDS` | Maximum seconds to wait for each `marimo export` subprocess (default 120; set to 0 to disable) |
 | `-v`, `--verbose` | Print progress to stdout |
 | `-h`, `--help` | Show help and exit |
 
@@ -94,3 +96,14 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 | `2` | No `@output` markers were found in the notebook |
 
 If a marked cell has no matching output in the HTML export, a warning is printed to stderr but the export continues — the unmatched block is left unchanged.
+
+### Subprocess behaviour
+
+`marimo-md-export` invokes `marimo export` as a subprocess. To ensure fully non-interactive operation:
+
+- `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. The intermediate files written by `marimo export` are temporary and deleted after the tool finishes.
+- `MPLBACKEND=Agg` is set in the subprocess environment, preventing matplotlib from trying to open an interactive display window (which would hang in a headless context).
+- `MARIMO_MANAGE_SCRIPT_METADATA=true` is set, suppressing marimo's sandbox confirmation prompt when a notebook has inline PEP 723 dependencies but `--sandbox` is not requested.
+- A timeout (default 120s) prevents the subprocess from hanging indefinitely. If your notebook takes longer, use `--timeout <seconds>` or `--timeout 0` to disable the timeout.
+
+If you need to run `marimo export` interactively (e.g. to respond to prompts), use `marimo export` directly. This tool is designed for automated documentation generation.

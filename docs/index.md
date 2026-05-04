@@ -20,11 +20,13 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 
 ## How it works
 
-1. Runs `marimo export md` to produce a markdown representation of the notebook (_without_ rendered outputs!), with cell sources in fenced ` ```python {.marimo} ` blocks.
-2. Runs `marimo export html` to produce the fully-rendered HTML (with executed outputs).
+1. Runs `marimo export md --force` to produce a markdown representation of the notebook (_without_ rendered outputs!), with cell sources in fenced ` ```python {.marimo} ` blocks.
+2. Runs `marimo export html --force` to produce the fully-rendered HTML (with executed outputs).
 3. Finds every cell marked `# @output: <label>` in the markdown export.
 4. Matches each marked cell to its rendered output in the HTML export by hashing the cell source.
 5. Injects each output into the markdown immediately after its code block.
+
+Both `marimo export` subprocesses run with `MPLBACKEND=Agg` (headless matplotlib) and `MARIMO_MANAGE_SCRIPT_METADATA=true` (suppress sandbox prompts). A 120s timeout prevents hung subprocesses from blocking indefinitely.
 
 Figures are embedded as base64 `<img>` tags. 
 Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
@@ -33,8 +35,4 @@ Tables are converted to GFM markdown tables where possible, falling back to raw 
 
 **Embedded figures produce large files.** 
 Figures are stored as base64-encoded PNGs inline in the markdown. A notebook with many plots can produce a multi-megabyte file.
-
-**Marimo HTML structure may change between versions.** 
-Output extraction relies on marimo's internal HTML. 
-The tool has been verified against `marimo >= 0.23.3`; a future release that changes the DOM structure could break extraction silently.
 
