@@ -8,14 +8,25 @@
 #     .code_hash  — MD5 hex digest of cell source (stripped)
 #     .id         — marimo's internal cell identifier (e.g. "aaa", "bbb")
 #     .outputs[]
-#       .type     — "data"
-#       .data     — dict of MIME type → value
+#       .type     — "data" or "error"
+#       .data     — dict of MIME type → value (for type "data")
+#       .ename    — exception class name (for type "error")
+#       .evalue   — exception message (for type "error")
+#       .traceback — list of traceback lines (for type "error")
+#     .console[]
+#       .name     — "stdout" or "stderr"
+#       .text     — console text content
 #
 # Supported MIME types:
-#   application/vnd.marimo+mimebundle  — JSON string; "image/png" key → figure
-#   text/html                          — may contain <marimo-table> web component
-#   text/markdown                      — rendered markdown
-#   text/plain                         — plain text
+#   application/vnd.marimo+mimebundle  — JSON string; may contain image/png, image/svg+xml, text/html, text/plain
+#   image/*                             — standalone image outputs (png, jpeg, svg+xml, etc.)
+#   application/json                    — pretty-printed JSON (dicts, lists, etc.)
+#   text/latex                          — LaTeX math (wrapped in $$ delimiters)
+#   text/csv                            — CSV data (rendered as code block)
+#   text/html                           — may contain <marimo-table> web component
+#   text/markdown                       — rendered markdown (placeholder comment; already in MD export)
+#   text/plain                          — plain text
+#   Unsupported types (vega, jupyter widgets, etc.) produce a placeholder comment.
 #
 # Tables are stored as <marimo-table data-data='...'> web components.
 # `data-data` is a JSON-quoted string of row objects; NaN appears literally.
@@ -102,21 +113,151 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     return f"<table><thead><tr>{header}</tr></thead><tbody>{body_rows}</tbody></table>"
 
 
+def _html_to_plain_text(html_str: str) -> str:
+    """Strip HTML markup from a string, leaving only plain text.
+
+    Used to clean Pygments-highlighted traceback output that marimo includes
+    in error-cell stderr entries.
+    """
+    text = unescape(html_str)
+    text = re.sub(r"<[^>]+>", "", text)
+    return unescape(text)
+
+
+def _format_error(output: dict) -> str:
+    """Format an error output as plain text in a <pre> block.
+
+    Error outputs have: ename, evalue, traceback fields.
+    The traceback may be None when marimo truncates it.
+    """
+    ename = output.get("ename", "Error") or "Error"
+    evalue = output.get("evalue", "") or ""
+    traceback_lines = output.get("traceback") or []
+    traceback_text = "\n".join(traceback_lines)
+    if traceback_text.strip():
+        # Traceback lines may contain HTML markup from Pygments
+        traceback_text = _html_to_plain_text(traceback_text)
+        combined = f"{traceback_text}\n{ename}: {evalue}"
+    else:
+        combined = f"{ename}: {evalue}"
+    return f"<pre>{escape(combined)}</pre>"
+
+
+_MARIMO_TYPE_RE = re.compile(r"^text/plain\+(\w+):(.*)$", re.DOTALL)
+
+
+def _strip_marimo_type_prefixes(obj: object) -> object:
+    """Recursively strip marimo type prefixes from JSON values.
+
+    Marimo encodes typed values as ``"text/plain+float:1.0"`` in
+    ``application/json`` output.  This helper converts them back to their
+    native Python types so the rendered JSON is clean.
+    """
+    if isinstance(obj, str):
+        m = _MARIMO_TYPE_RE.match(obj)
+        if m:
+            type_tag, raw = m.group(1), m.group(2)
+            if type_tag == "float":
+                try:
+                    return float(raw)
+                except ValueError:
+                    return raw
+            if type_tag == "int":
+                try:
+                    return int(raw)
+                except ValueError:
+                    return raw
+            if type_tag == "bool":
+                return raw.lower() == "true"
+            if type_tag in ("none", "NoneType"):
+                return None
+            return raw
+        return obj
+    if isinstance(obj, list):
+        return [_strip_marimo_type_prefixes(item) for item in obj]
+    if isinstance(obj, dict):
+        return {k: _strip_marimo_type_prefixes(v) for k, v in obj.items()}
+    return obj
+
+
 def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     """
     Given the output data dict (MIME → value), return (output_type, raw_html)
     or None if there is nothing renderable.
     """
-    # Figure: marimo mimebundle with image/png
+    # Figure: marimo mimebundle — try representations in priority order
     bundle_raw = data.get("application/vnd.marimo+mimebundle")
     if bundle_raw:
         try:
             bundle = json.loads(bundle_raw)
         except json.JSONDecodeError:
             bundle = {}
-        src = bundle.get("image/png")
-        if src:
-            return "figure", f'<img src="{escape(src, quote=True)}" alt="figure">'
+        for mime_key in ("image/png", "image/svg+xml", "text/html", "text/plain"):
+            val = bundle.get(mime_key)
+            if val:
+                if mime_key.startswith("image/"):
+                    return (
+                        "figure",
+                        f'<img src="{escape(val, quote=True)}" alt="{escape(mime_key.split("/")[1], quote=True)}">',
+                    )
+                if mime_key == "text/html":
+                    return "html", unescape(val)
+                if mime_key == "text/plain" and val.strip():
+                    return "text", f"<pre>{escape(val)}</pre>"
+
+    # Standalone image MIME types
+    for mime_type in (
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/svg+xml",
+        "image/tiff",
+        "image/avif",
+        "image/bmp",
+        "image/webp",
+    ):
+        img_val = data.get(mime_type)
+        if img_val:
+            fmt = mime_type.split("/")[1]
+            return (
+                "figure",
+                f'<img src="{escape(img_val, quote=True)}" alt="{escape(fmt, quote=True)}">',
+            )
+
+    # JSON output (dicts, lists, tuples)
+    json_val = data.get("application/json")
+    if json_val:
+        try:
+            parsed = json.loads(json_val)
+            cleaned = _strip_marimo_type_prefixes(parsed)
+            formatted = json.dumps(cleaned, indent=2, ensure_ascii=False)
+        except (json.JSONDecodeError, TypeError):
+            formatted = json_val
+        return "json", f"<pre><code>{escape(formatted)}</code></pre>"
+
+    # LaTeX output — wrap in $$ delimiters for math rendering.
+    # NOTE: text/latex is a fallback MIME type and is not expected to appear
+    # in normal marimo usage. LaTeX in marimo is typically rendered inside
+    # mo.md() blocks, which produce text/markdown output (suppressed to avoid
+    # duplication with the markdown export). This handler exists for
+    # robustness in case a library emits standalone text/latex.
+    latex_val = data.get("text/latex", "")
+    if latex_val and latex_val.strip():
+        content = latex_val.strip()
+        if content.startswith("$$") and content.endswith("$$"):
+            return "latex", content
+        if (
+            content.startswith("$")
+            and content.endswith("$")
+            and not content.startswith("$$")
+        ):
+            return "latex", f"${content[1:-1]}$"
+        return "latex", f"$$\n{content}\n$$"
+
+    # CSV output — render as a plain text code block
+    csv_val = data.get("text/csv", "")
+    if csv_val and csv_val.strip():
+        return "csv", f"<pre><code>{escape(csv_val)}</code></pre>"
 
     # HTML output (may be a marimo-table web component)
     html_val = data.get("text/html")
@@ -128,11 +269,28 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
         # Generic HTML (e.g. styled dataframe rendered as <table>)
         if "<table" in decoded:
             return "table", decoded
-        return "unknown", decoded
+        return "html", decoded
 
     plain = data.get("text/plain", "")
     if plain and plain.strip():
         return "text", f"<pre>{escape(plain)}</pre>"
+
+    # Unsupported MIME types — leave a comment for debugging
+    unsupported = {
+        "application/vnd.vega.v5+json",
+        "application/vnd.vega.v6+json",
+        "application/vnd.vegalite.v5+json",
+        "application/vnd.vegalite.v6+json",
+        "application/vnd.jupyter.widget-view+json",
+        "text/markdown",
+        "text/password",
+    }
+    for mime_type in unsupported:
+        if mime_type in data:
+            return (
+                "unsupported",
+                f"<!-- unsupported output type: {escape(mime_type)} -->",
+            )
 
     return None
 
@@ -144,9 +302,9 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
     that has a renderable output. The cell_id is populated from marimo's
     internal cell identifier.
 
-    If a cell has multiple outputs, only the first renderable one is used
-    (in MIME-type priority order: marimo mimebundle → text/html → text/plain).
-    Console output (stdout) is always captured independently.
+    If a cell has multiple renderable outputs, all are collected and joined
+    (in MIME-type priority order). Console output (stdout and stderr) is
+    always captured independently.
     """
     cells_raw = _extract_session_cells_raw(html)
     try:
@@ -167,17 +325,48 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
         )
         console_html = f"<pre>{escape(stdout)}</pre>" if stdout.strip() else ""
 
-        raw_html = ""
-        output_type = "unknown"
+        # Stderr may contain Pygments-highlighted HTML; strip it to plain text
+        stderr = "".join(
+            c.get("text", "")
+            for c in cell.get("console", [])
+            if c.get("name") == "stderr"
+        )
+        stderr = _html_to_plain_text(stderr) if stderr.strip() else ""
+        stderr_html = (
+            f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
+        )
+
+        # Console media output (images printed to console)
+        media_parts = []
+        for c in cell.get("console", []):
+            if c.get("type") != "streamMedia":
+                continue
+            mimetype = c.get("mimetype", "")
+            data = c.get("data", "")
+            if mimetype.startswith("image/") and data:
+                fmt = mimetype.split("/")[1]
+                media_parts.append(
+                    f'<img src="{escape(data, quote=True)}" alt="{escape(fmt, quote=True)}">'
+                )
+        media_html = "\n".join(media_parts)
+
+        output_parts: list[tuple[str, str]] = []
         for output in cell.get("outputs", []):
+            if output.get("type") == "error":
+                error_html = _format_error(output)
+                if error_html:
+                    output_parts.append(("error", error_html))
+                    break
             data = output.get("data", {})
             classified = _classify_and_build(data)
             if classified is None:
                 continue
-            output_type, raw_html = classified
-            break  # first renderable output per cell wins
+            output_parts.append(classified)
 
-        if not console_html and not raw_html:
+        raw_html = "\n\n".join(html for _, html in output_parts) if output_parts else ""
+        output_type = output_parts[0][0] if output_parts else "unknown"
+
+        if not console_html and not stderr_html and not media_html and not raw_html:
             continue
 
         results[code_hash] = ExtractedOutput(
@@ -185,6 +374,8 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             output_type=output_type,
             cell_id=cell_id,
             console_html=console_html,
+            stderr_html=stderr_html,
+            media_html=media_html,
         )
 
     return results

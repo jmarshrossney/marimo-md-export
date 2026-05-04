@@ -20,8 +20,9 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
+    import sys
 
-    return mo, np, pd, plt
+    return mo, np, pd, plt, sys
 
 
 @app.cell(hide_code=True)
@@ -33,8 +34,6 @@ def _(mo):
 
     You can view the original notebook at [`examples/notebook.py`](https://github.com/jmarshrossney/marimo-md-export/examples/notebook.py).
     The command used to convert it to a docs page is the `just docs` command in [`justfile`](https://github.com/jmarshrossney/marimo-md-export/justfile).
-
-    We consider a damped sinusoid which decays as exp(-x/6), reducing variance by roughly a factor of (1 - exp(-2π/3)) per cycle.
     """)
     return
 
@@ -87,7 +86,7 @@ def _(np, pd, x):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Console
+    ## Console output
     """)
     return
 
@@ -97,6 +96,115 @@ def _(np, x):
     print(f"Number of points: {len(x)}")
     print(f"x range: [{x[0]:.4f}, {x[-1]:.4f}]")
     print(f"Mean of sin(x): {np.mean(np.sin(x)):.6f}")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## JSON output
+
+    Returning a dict or list from a cell produces a JSON render.
+    """)
+    return
+
+
+@app.cell
+def _():
+    {"name": "damped sinusoid", "amplitude": 1.0, "decay_rate": 0.167}
+    return
+
+
+@app.cell
+def _(x):
+    [round(float(xi), 4) for xi in x[:5]]
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Errors
+
+    Cells that raise exceptions produce error output with traceback.
+    """)
+    return
+
+
+@app.cell
+def _():
+    raise ValueError("This cell demonstrates error output handling")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Standard error
+
+    Output written to `sys.stderr` is captured separately from stdout.
+    """)
+    return
+
+
+@app.cell
+def _(sys, x):
+    sys.stderr.write(f"Warning: computing over {len(x)} points\n")
+    "stderr demo"
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## SVG graphics
+
+    Inline SVG rendered via `mo.Html`.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.Html("""<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
+    <rect x="5" y="5" width="190" height="90" fill="#4a9eff" rx="10"/>
+    <text x="100" y="55" text-anchor="middle" fill="white" font-size="14">SVG Image</text>
+    </svg>""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Multiple outputs
+
+    A cell with both console output and an expression result.
+    """)
+    return
+
+
+@app.cell
+def _(np, x):
+    print(f"Computing statistics for {len(x)} points...")
+    np.mean(np.sin(x))
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Suppressed output
+
+    Adding `# @suppress` to a cell prevents its output from appearing in the exported markdown.
+    """)
+    return
+
+
+@app.cell
+def _(np, x):
+    # @suppress
+    intermediate = np.sum(x)
+    intermediate
     return
 
 

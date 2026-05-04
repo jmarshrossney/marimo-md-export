@@ -106,9 +106,12 @@ def export_html(
                 f"marimo export html timed out after {timeout}s.\n"
                 "Try passing --sandbox to run in an isolated environment."
             )
-        if result.returncode != 0:
+        if result.returncode not in (0, 1):
             raise RuntimeError(f"marimo export html failed:\n{result.stderr}")
-        return tmp.read_bytes()
+        html = tmp.read_bytes()
+        if result.returncode == 1 and not html:
+            raise RuntimeError(f"marimo export html failed:\n{result.stderr}")
+        return html
     finally:
         tmp.unlink(missing_ok=True)
 
@@ -134,9 +137,12 @@ def export_md(
                 f"marimo export md timed out after {timeout}s.\n"
                 "Try passing --sandbox to run in an isolated environment."
             )
-        if result.returncode != 0:
+        if result.returncode not in (0, 1):
             raise RuntimeError(f"marimo export md failed:\n{result.stderr}")
-        return tmp.read_text(encoding="utf-8")
+        md = tmp.read_text(encoding="utf-8")
+        if result.returncode == 1 and not md:
+            raise RuntimeError(f"marimo export md failed:\n{result.stderr}")
+        return md
     finally:
         tmp.unlink(missing_ok=True)
 

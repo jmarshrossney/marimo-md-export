@@ -19,3 +19,5 @@ class ExtractedOutput:
     output_type: str
     cell_id: str = ""
     console_html: str = field(default="")
+    stderr_html: str = field(default="")
+    media_html: str = field(default="")

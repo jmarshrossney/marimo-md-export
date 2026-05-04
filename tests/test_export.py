@@ -12,9 +12,11 @@ from marimo_md_export.export import (
 )
 
 
-def _failed_result(stderr: str = "error") -> subprocess.CompletedProcess[str]:
+def _failed_result(
+    stderr: str = "error", returncode: int = 2
+) -> subprocess.CompletedProcess[str]:
     return subprocess.CompletedProcess(
-        args=["marimo"], returncode=1, stdout="", stderr=stderr
+        args=["marimo"], returncode=returncode, stdout="", stderr=stderr
     )
 
 

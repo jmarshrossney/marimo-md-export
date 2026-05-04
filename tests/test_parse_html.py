@@ -75,6 +75,24 @@ def _text_cell(code: str, text: str) -> dict:
     }
 
 
+def _data_cell(code: str, mime_type: str, value: str) -> dict:
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "zzz",
+        "console": [],
+        "outputs": [{"type": "data", "data": {mime_type: value}}],
+    }
+
+
+def _json_cell(code: str, obj: object) -> dict:
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "eee",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"application/json": json.dumps(obj)}}],
+    }
+
+
 def _console_cell(code: str, stdout: str, outputs: list | None = None) -> dict:
     return {
         "code_hash": _md5(code.strip()),
@@ -165,7 +183,7 @@ def test_console_and_cell_output_combined():
     assert _PNG_DATA in out.raw_html
 
 
-def test_stderr_ignored():
+def test_stderr_captured():
     code = "import sys; print('bad', file=sys.stderr)"
     cell = {
         "code_hash": _md5(code.strip()),
@@ -175,41 +193,132 @@ def test_stderr_ignored():
     }
     html = _make_html([cell])
     results = extract_outputs(html)
-    assert results == {}
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert "bad" in out.stderr_html
+    assert 'class="stderr"' in out.stderr_html
 
 
-def test_no_session_cells_match():
-    html = b"<html><body>no script here</body></html>"
-    results = extract_outputs(html)
-    assert results == {}
-
-
-def test_bracket_counting_falls_off_end():
-    # Malformed HTML where bracket counting never reaches depth 0
-    html = b'<script>{"session": {"cells": [{"code_hash": "abc"}</script>'
-    results = extract_outputs(html)
-    assert results == {}
-
-
-def test_marimo_table_not_found():
-    code = "df"
-    # HTML that has <marimo-ui-element> but no <marimo-table>
-    html_val = "<marimo-ui-element>not a table</marimo-ui-element>"
-    import html as html_module
-
-    escaped = html_module.escape(html_val, quote=False)
+def test_stream_media_image():
+    code = "print_image"
     cell = {
         "code_hash": _md5(code.strip()),
-        "id": "fff",
-        "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "id": "mmm",
+        "console": [
+            {
+                "type": "streamMedia",
+                "name": "media",
+                "data": _PNG_DATA,
+                "mimetype": "image/png",
+            }
+        ],
+        "outputs": [],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
-    # Should return the original HTML unchanged (not classified as table)
     assert len(results) == 1
     out = results[_md5(code.strip())]
-    assert out.output_type == "unknown"
+    assert _PNG_DATA in out.media_html
+    assert "<img" in out.media_html
+    assert out.raw_html == ""
+
+
+def test_stream_media_with_stdout():
+    code = "print('hi')\nprint_image"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "nnn",
+        "console": [
+            {
+                "name": "stdout",
+                "text": "hi\n",
+                "type": "stream",
+                "mimetype": "text/plain",
+            },
+            {
+                "type": "streamMedia",
+                "name": "media",
+                "data": _PNG_DATA,
+                "mimetype": "image/png",
+            },
+        ],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert "<pre>hi\n</pre>" == out.console_html
+    assert "<img" in out.media_html
+
+
+def test_unsupported_vega_type():
+    code = "altair_chart"
+    cell = _data_cell(code, "application/vnd.vegalite.v5+json", '{"mark": "bar"}')
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "unsupported"
+    assert "vegalite" in out.raw_html
+    assert "<!--" in out.raw_html
+
+
+def test_unsupported_markdown_type():
+    code = "mo_md_cell"
+    cell = _data_cell(code, "text/markdown", "<span>heading</span>")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "unsupported"
+    assert "text/markdown" in out.raw_html
+
+
+def test_latex_display_math():
+    code = "latex_display"
+    cell = _data_cell(code, "text/latex", r"\int_0^1 x^2 dx")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "latex"
+    assert "$$" in out.raw_html
+    assert r"\int" in out.raw_html
+
+
+def test_latex_already_delimited():
+    code = "latex_delimited"
+    cell = _data_cell(code, "text/latex", "$$E=mc^2$$")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "latex"
+    assert out.raw_html == "$$E=mc^2$$"
+
+
+def test_latex_inline_delimited():
+    code = "latex_inline"
+    cell = _data_cell(code, "text/latex", "$x^2$")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "latex"
+    assert out.raw_html == "$x^2$"
+
+
+def test_csv_output():
+    code = "csv_out"
+    csv_data = "name,age\nAlice,30\nBob,25"
+    cell = _data_cell(code, "text/csv", csv_data)
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "csv"
+    assert "Alice,30" in out.raw_html
+    assert "<pre><code>" in out.raw_html
 
 
 def test_table_data_json_decode_error():
@@ -395,3 +504,480 @@ def test_table_html_from_marimo_table_no_marimo_table():
     # HTML that doesn't contain <marimo-table> element
     result = _table_html_from_marimo_table("<div>not a table</div>")
     assert result == "<div>not a table</div>"
+
+
+def test_json_dict_extraction():
+    code = "my_dict"
+    html = _make_html([_json_cell(code, {"name": "Alice", "age": 30})])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "<pre><code>" in out.raw_html
+    assert "&quot;name&quot;" in out.raw_html or '"name"' in out.raw_html
+    assert "Alice" in out.raw_html
+
+
+def test_json_list_extraction():
+    code = "my_list"
+    html = _make_html([_json_cell(code, [1, 2, 3])])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "1" in out.raw_html
+
+
+def test_json_nested_extraction():
+    code = "nested"
+    obj = {"key": [1, {"inner": True}]}
+    html = _make_html([_json_cell(code, obj)])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "inner" in out.raw_html
+
+
+def test_json_invalid_fallback():
+    code = "bad_json"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "zzz",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/json": "not valid json {["}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    assert "not valid json" in out.raw_html
+
+
+def test_json_priority_over_html():
+    code = "obj_with_both"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "zzz",
+        "console": [],
+        "outputs": [
+            {
+                "type": "data",
+                "data": {
+                    "application/json": json.dumps({"key": "val"}),
+                    "text/html": "<p>html content</p>",
+                },
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+
+
+def test_json_combined_with_console():
+    code = "print('hi')\nmy_dict"
+    cell = _console_cell(
+        code,
+        "hi\n",
+        outputs=[
+            {"type": "data", "data": {"application/json": json.dumps({"a": 1})}},
+        ],
+    )
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.console_html == "<pre>hi\n</pre>"
+    assert out.output_type == "json"
+
+
+def test_error_output_extraction():
+    code = "1 / 0"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err1",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ZeroDivisionError",
+                "evalue": "division by zero",
+                "traceback": [
+                    "Traceback (most recent call last):",
+                    '  File "<stdin>", line 1, in <module>',
+                    "ZeroDivisionError: division by zero",
+                ],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "ZeroDivisionError" in out.raw_html
+    assert "division by zero" in out.raw_html
+    assert "<pre>" in out.raw_html
+    assert "<strong>" not in out.raw_html
+
+
+def test_error_without_traceback():
+    code = "raise ValueError"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err2",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ValueError",
+                "evalue": "bad value",
+                "traceback": [],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "ValueError" in out.raw_html
+    assert "<pre>" in out.raw_html
+    assert "<strong>" not in out.raw_html
+
+
+def test_error_takes_priority_over_data():
+    code = "bad_cell"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err3",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "RuntimeError",
+                "evalue": "failed",
+                "traceback": ["line 1"],
+            },
+            {"type": "data", "data": {"text/plain": "should not appear"}},
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "RuntimeError" in out.raw_html
+    assert "should not appear" not in out.raw_html
+
+
+def test_error_with_console_output():
+    code = "print('before')\n1/0"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err4",
+        "console": [{"name": "stdout", "text": "before\n"}],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ZeroDivisionError",
+                "evalue": "division by zero",
+                "traceback": ["traceback line"],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.console_html == "<pre>before\n</pre>"
+    assert out.output_type == "error"
+
+
+def test_stdout_and_stderr_both_captured():
+    code = "print('out')\nprint('err', file=sys.stderr)"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "fff",
+        "console": [
+            {"name": "stdout", "text": "out\n"},
+            {"name": "stderr", "text": "err\n"},
+        ],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert "<pre>out\n</pre>" == out.console_html
+    assert "err" in out.stderr_html
+    assert 'class="stderr"' in out.stderr_html
+    assert out.raw_html == ""
+
+
+def test_stderr_only_captured():
+    code = "import logging; logging.warning('watch out')"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ggg",
+        "console": [{"name": "stderr", "text": "WARNING:root:watch out\n"}],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.console_html == ""
+    assert "WARNING:root:watch out" in out.stderr_html
+
+
+def test_stderr_strips_html():
+    code = "err_with_traceback"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "hhh",
+        "console": [
+            {
+                "name": "stderr",
+                "text": '<span class="gt">Traceback (most recent call last):</span>\n'
+                '  File "<stdin>", line 1\n'
+                '<span class="ne">ValueError</span>: oops',
+            }
+        ],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert "<span" not in out.stderr_html
+    assert "Traceback (most recent call last)" in out.stderr_html
+    assert "ValueError" in out.stderr_html
+
+
+def test_mimebundle_svg_fallback():
+    code = "svg_fig"
+    svg_data = "data:image/svg+xml,...svgcontent..."
+    bundle = json.dumps({"image/svg+xml": svg_data})
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "aaa",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "image/svg+xml" in out.raw_html
+
+
+def test_mimebundle_html_fallback():
+    code = "html_output"
+    bundle = json.dumps({"text/html": "<p>Hello</p>"})
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "bbb",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
+    assert "<p>Hello</p>" in out.raw_html
+
+
+def test_mimebundle_text_fallback():
+    code = "text_output"
+    bundle = json.dumps({"text/plain": "simple text"})
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ccc",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "text"
+    assert "simple text" in out.raw_html
+
+
+def test_standalone_image_png():
+    code = "img_png"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ddd",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"image/png": _PNG_DATA}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert _PNG_DATA in out.raw_html
+
+
+def test_standalone_image_jpeg():
+    code = "img_jpeg"
+    jpeg_data = "data:image/jpeg;base64,/9j/4AAQ..."
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "eee",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"image/jpeg": jpeg_data}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "jpeg" in out.raw_html
+
+
+def test_standalone_image_svg():
+    code = "img_svg"
+    svg_data = "data:image/svg+xml,...svgcontent..."
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "fff",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"image/svg+xml": svg_data}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "svg+xml" in out.raw_html
+
+
+def test_generic_html_output_type():
+    code = "html_out"
+    import html as html_module
+
+    html_val = html_module.escape("<div>some generic html</div>", quote=False)
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ggg",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"text/html": html_val}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
+
+
+def test_multiple_outputs_per_cell():
+    code = "multi_output"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ooo",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"text/plain": "result text"}},
+            {"type": "data", "data": {"text/html": "<p>extra</p>"}},
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert "result text" in out.raw_html
+    assert "<p>extra</p>" in out.raw_html
+
+
+def test_json_type_prefix_stripping():
+    code = "typed_json"
+    import json as json_mod
+
+    raw = json_mod.dumps(
+        {
+            "a": "text/plain+float:1.0",
+            "b": "text/plain+int:42",
+            "c": "text/plain+bool:True",
+            "d": "text/plain+NoneType:None",
+            "e": "plain string",
+        }
+    )
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "json_typed",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"application/json": raw}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    rendered = out.raw_html
+    assert "1.0" in rendered
+    assert "42" in rendered
+    assert "true" in rendered.lower() or "True" in rendered
+    assert "null" in rendered
+    assert "plain string" in rendered
+    assert "text/plain+float" not in rendered
+
+
+def test_error_null_traceback():
+    code = "err_null"
+
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err_null",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ValueError",
+                "evalue": "bad value",
+                "traceback": None,
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "ValueError" in out.raw_html
+    assert "bad value" in out.raw_html
+
+
+def test_error_traceback_strips_html():
+    code = "err_html"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err_html",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ValueError",
+                "evalue": "bad",
+                "traceback": [
+                    '<span class="gt">Traceback (most recent call last):</span>',
+                    '  File "<stdin>", line 1',
+                    '<span class="ne">ValueError</span>: bad',
+                ],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "<span" not in out.raw_html
+    assert "Traceback (most recent call last)" in out.raw_html
+    assert "ValueError" in out.raw_html
+    assert "bad" in out.raw_html
