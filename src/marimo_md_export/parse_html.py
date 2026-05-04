@@ -235,7 +235,12 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
             formatted = json_val
         return "json", f"<pre><code>{escape(formatted)}</code></pre>"
 
-    # LaTeX output — wrap in $$ delimiters for math rendering
+    # LaTeX output — wrap in $$ delimiters for math rendering.
+    # NOTE: text/latex is a fallback MIME type and is not expected to appear
+    # in normal marimo usage. LaTeX in marimo is typically rendered inside
+    # mo.md() blocks, which produce text/markdown output (suppressed to avoid
+    # duplication with the markdown export). This handler exists for
+    # robustness in case a library emits standalone text/latex.
     latex_val = data.get("text/latex", "")
     if latex_val and latex_val.strip():
         content = latex_val.strip()
