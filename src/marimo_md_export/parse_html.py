@@ -24,8 +24,9 @@
 #   text/latex                          — LaTeX math (wrapped in $$ delimiters)
 #   text/csv                            — CSV data (rendered as code block)
 #   text/html                           — may contain <marimo-table> web component
-#   text/markdown                       — rendered markdown (not captured; already in MD export)
+#   text/markdown                       — rendered markdown (placeholder comment; already in MD export)
 #   text/plain                          — plain text
+#   Unsupported types (vega, jupyter widgets, etc.) produce a placeholder comment.
 #
 # Tables are stored as <marimo-table data-data='...'> web components.
 # `data-data` is a JSON-quoted string of row objects; NaN appears literally.
@@ -196,6 +197,20 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     plain = data.get("text/plain", "")
     if plain and plain.strip():
         return "text", f"<pre>{escape(plain)}</pre>"
+
+    # Unsupported MIME types — leave a comment for debugging
+    unsupported = {
+        "application/vnd.vega.v5+json",
+        "application/vnd.vega.v6+json",
+        "application/vnd.vegalite.v5+json",
+        "application/vnd.vegalite.v6+json",
+        "application/vnd.jupyter.widget-view+json",
+        "text/markdown",
+        "text/password",
+    }
+    for mime_type in unsupported:
+        if mime_type in data:
+            return "unsupported", f"<!-- unsupported output type: {escape(mime_type)} -->"
 
     return None
 

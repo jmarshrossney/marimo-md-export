@@ -236,6 +236,29 @@ def test_stream_media_with_stdout():
     assert "<img" in out.media_html
 
 
+def test_unsupported_vega_type():
+    code = "altair_chart"
+    cell = _data_cell(code, "application/vnd.vegalite.v5+json", '{"mark": "bar"}')
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "unsupported"
+    assert "vegalite" in out.raw_html
+    assert "<!--" in out.raw_html
+
+
+def test_unsupported_markdown_type():
+    code = "mo_md_cell"
+    cell = _data_cell(code, "text/markdown", "<span>heading</span>")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "unsupported"
+    assert "text/markdown" in out.raw_html
+
+
 def test_latex_display_math():
     code = "latex_display"
     cell = _data_cell(code, "text/latex", r"\int_0^1 x^2 dx")
