@@ -327,7 +327,9 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             if c.get("name") == "stderr"
         )
         stderr = _html_to_plain_text(stderr) if stderr.strip() else ""
-        stderr_html = f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
+        stderr_html = (
+            f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
+        )
 
         # Console media output (images printed to console)
         media_parts = []
