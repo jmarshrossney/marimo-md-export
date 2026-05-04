@@ -34,7 +34,3 @@ Tables are converted to GFM markdown tables where possible, falling back to raw 
 **Embedded figures produce large files.** 
 Figures are stored as base64-encoded PNGs inline in the markdown. A notebook with many plots can produce a multi-megabyte file.
 
-**Marimo HTML structure may change between versions.** 
-Output extraction relies on marimo's internal HTML. 
-The tool has been verified against `marimo >= 0.23.3`; a future release that changes the DOM structure could break extraction silently.
-

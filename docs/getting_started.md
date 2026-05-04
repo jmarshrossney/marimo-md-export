@@ -82,6 +82,7 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 |---|---|
 | `--html-output PATH` | If provided, also save the intermediate HTML export to this path |
 | `--marimo-args TEXT` | Extra arguments forwarded to `marimo export` (space-separated) |
+| `--sandbox`/`--no-sandbox` | Run `marimo export` in a sandboxed environment using `uv` (requires PEP 723 metadata) |
 | `-v`, `--verbose` | Print progress to stdout |
 | `-h`, `--help` | Show help and exit |
 
