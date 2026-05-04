@@ -2,15 +2,15 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "matplotlib",
-#     "numpy",
-#     "pandas",
+#     "matplotlib==3.10.9",
+#     "numpy==2.4.4",
+#     "pandas==3.0.2",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.23.4"
+__generated_with = "0.23.3"
 app = marimo.App(app_title="Example notebook")
 
 

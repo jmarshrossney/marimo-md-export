@@ -8,7 +8,7 @@ from .parse_html import extract_outputs
 from .parse_md import collect_marked_cells
 
 app = typer.Typer(
-    help="Command-line tool for exporting marimo .py notebooks to markdown .md with rendered HTML.",
+    help="Export a marimo (.py) notebook to markdown (.md) with rendered outputs embedded inline.",
     context_settings={"help_option_names": ["-h", "--help"]},
     add_completion=False,
 )
@@ -44,17 +44,30 @@ def main(
     sandbox: bool = typer.Option(
         False,
         "--sandbox/--no-sandbox",
-        help="Run marimo export in a sandboxed environment using uv "
-        "(requires uv and inline PEP 723 script metadata).",
+        help="Run marimo export in an isolated uv environment. "
+        "Without this flag, marimo's own sandbox prompt is suppressed.",
+    ),
+    timeout: int = typer.Option(
+        120,
+        "--timeout",
+        help="Maximum seconds to wait for each marimo export subprocess "
+        "(set to 0 to disable).",
     ),
 ) -> None:
-    """Export a marimo notebook to markdown with rendered outputs injected."""
+    """Export a marimo notebook to markdown with rendered outputs injected.
+
+    marimo export is always called with --force to suppress overwrite
+    prompts; MPLBACKEND=Agg is set in the subprocess environment to
+    prevent matplotlib from hanging. Use --sandbox to run the export
+    in an isolated uv environment.
+    """
     extra = marimo_args.split() if marimo_args.strip() else []
+    timeout_val = timeout or None
 
     if verbose:
         typer.echo(f"Exporting markdown: {notebook}")
     try:
-        md = export_md(notebook, sandbox=sandbox)
+        md = export_md(notebook, sandbox=sandbox, timeout=timeout_val)
     except RuntimeError as exc:
         typer.echo(f"marimo export md failed:\n{exc}", err=True)
         raise typer.Exit(1)
@@ -76,7 +89,7 @@ def main(
         typer.echo(f"Exporting HTML: {notebook}")
 
     try:
-        html = export_html(notebook, extra, sandbox=sandbox)
+        html = export_html(notebook, extra, sandbox=sandbox, timeout=timeout_val)
     except RuntimeError as exc:
         typer.echo(f"marimo export html failed:\n{exc}", err=True)
         raise typer.Exit(1)
