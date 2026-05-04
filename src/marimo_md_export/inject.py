@@ -54,8 +54,6 @@ def _format_output(output: ExtractedOutput) -> str:
         if output.output_type == "table":
             gfm = _table_to_gfm(output.raw_html)
             parts.append(gfm if gfm is not None else output.raw_html)
-        elif output.output_type == "error":
-            parts.append(f'<div class="error">\n{output.raw_html}\n</div>')
         else:
             parts.append(output.raw_html)
 

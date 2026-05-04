@@ -179,19 +179,19 @@ def test_table_to_gfm_pipe_escaped():
     assert "| a \\| b |" in result
 
 
-def test_error_output_wrapped_in_div():
+def test_error_output_rendered_as_pre():
     source = "1 / 0"
     md = _md_with_block(source)
     cells = collect_cells(md)
     error_output = ExtractedOutput(
-        raw_html="<strong>ZeroDivisionError</strong>: division by zero\n<pre>traceback</pre>",
+        raw_html="<pre>ZeroDivisionError: division by zero</pre>",
         output_type="error",
         cell_id="err1",
     )
     outputs = {cells[0].source_hash: error_output}
     result, warnings = _inject(md, outputs)
-    assert '<div class="error">' in result
-    assert "ZeroDivisionError" in result
+    assert "<pre>ZeroDivisionError" in result
+    assert '<div class="error">' not in result
 
 
 def test_stderr_injected_after_stdout():

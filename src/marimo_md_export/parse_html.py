@@ -113,19 +113,34 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     return f"<table><thead><tr>{header}</tr></thead><tbody>{body_rows}</tbody></table>"
 
 
+def _html_to_plain_text(html_str: str) -> str:
+    """Strip HTML markup from a string, leaving only plain text.
+
+    Used to clean Pygments-highlighted traceback output that marimo includes
+    in error-cell stderr entries.
+    """
+    text = unescape(html_str)
+    text = re.sub(r"<[^>]+>", "", text)
+    return unescape(text)
+
+
 def _format_error(output: dict) -> str:
-    """Format an error output as HTML.
+    """Format an error output as plain text in a <pre> block.
 
     Error outputs have: ename, evalue, traceback fields.
+    The traceback may be None when marimo truncates it.
     """
-    ename = escape(output.get("ename", "Error"))
-    evalue = escape(output.get("evalue", ""))
+    ename = output.get("ename", "Error") or "Error"
+    evalue = output.get("evalue", "") or ""
     traceback_lines = output.get("traceback") or []
-    traceback_text = escape("\n".join(traceback_lines))
-    parts = [f"<strong>{ename}</strong>: {evalue}"]
+    traceback_text = "\n".join(traceback_lines)
     if traceback_text.strip():
-        parts.append(f"<pre>{traceback_text}</pre>")
-    return "\n".join(parts)
+        # Traceback lines may contain HTML markup from Pygments
+        traceback_text = _html_to_plain_text(traceback_text)
+        combined = f"{traceback_text}\n{ename}: {evalue}"
+    else:
+        combined = f"{ename}: {evalue}"
+    return f"<pre>{escape(combined)}</pre>"
 
 
 _MARIMO_TYPE_RE = re.compile(r"^text/plain\+(\w+):(.*)$", re.DOTALL)
@@ -305,14 +320,14 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
         )
         console_html = f"<pre>{escape(stdout)}</pre>" if stdout.strip() else ""
 
+        # Stderr may contain Pygments-highlighted HTML; strip it to plain text
         stderr = "".join(
             c.get("text", "")
             for c in cell.get("console", [])
             if c.get("name") == "stderr"
         )
-        stderr_html = (
-            f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
-        )
+        stderr = _html_to_plain_text(stderr) if stderr.strip() else ""
+        stderr_html = f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
 
         # Console media output (images printed to console)
         media_parts = []

@@ -618,9 +618,10 @@ def test_error_output_extraction():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "error"
-    assert "<strong>ZeroDivisionError</strong>" in out.raw_html
+    assert "ZeroDivisionError" in out.raw_html
     assert "division by zero" in out.raw_html
     assert "<pre>" in out.raw_html
+    assert "<strong>" not in out.raw_html
 
 
 def test_error_without_traceback():
@@ -643,8 +644,9 @@ def test_error_without_traceback():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "error"
-    assert "<strong>ValueError</strong>" in out.raw_html
-    assert "<pre>" not in out.raw_html
+    assert "ValueError" in out.raw_html
+    assert "<pre>" in out.raw_html
+    assert "<strong>" not in out.raw_html
 
 
 def test_error_takes_priority_over_data():
@@ -726,6 +728,29 @@ def test_stderr_only_captured():
     out = results[_md5(code.strip())]
     assert out.console_html == ""
     assert "WARNING:root:watch out" in out.stderr_html
+
+
+def test_stderr_strips_html():
+    code = "err_with_traceback"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "hhh",
+        "console": [
+            {
+                "name": "stderr",
+                "text": '<span class="gt">Traceback (most recent call last):</span>\n'
+                '  File "<stdin>", line 1\n'
+                '<span class="ne">ValueError</span>: oops',
+            }
+        ],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert "<span" not in out.stderr_html
+    assert "Traceback (most recent call last)" in out.stderr_html
+    assert "ValueError" in out.stderr_html
 
 
 def test_mimebundle_svg_fallback():
@@ -927,3 +952,32 @@ def test_error_null_traceback():
     assert out.output_type == "error"
     assert "ValueError" in out.raw_html
     assert "bad value" in out.raw_html
+
+
+def test_error_traceback_strips_html():
+    code = "err_html"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err_html",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ValueError",
+                "evalue": "bad",
+                "traceback": [
+                    '<span class="gt">Traceback (most recent call last):</span>',
+                    '  File "<stdin>", line 1',
+                    '<span class="ne">ValueError</span>: bad',
+                ],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "<span" not in out.raw_html
+    assert "Traceback (most recent call last)" in out.raw_html
+    assert "ValueError" in out.raw_html
+    assert "bad" in out.raw_html
