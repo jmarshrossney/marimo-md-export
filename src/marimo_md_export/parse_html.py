@@ -120,12 +120,49 @@ def _format_error(output: dict) -> str:
     """
     ename = escape(output.get("ename", "Error"))
     evalue = escape(output.get("evalue", ""))
-    traceback_lines = output.get("traceback", [])
+    traceback_lines = output.get("traceback") or []
     traceback_text = escape("\n".join(traceback_lines))
     parts = [f"<strong>{ename}</strong>: {evalue}"]
     if traceback_text.strip():
         parts.append(f"<pre>{traceback_text}</pre>")
     return "\n".join(parts)
+
+
+_MARIMO_TYPE_RE = re.compile(r"^text/plain\+(\w+):(.*)$", re.DOTALL)
+
+
+def _strip_marimo_type_prefixes(obj: object) -> object:
+    """Recursively strip marimo type prefixes from JSON values.
+
+    Marimo encodes typed values as ``"text/plain+float:1.0"`` in
+    ``application/json`` output.  This helper converts them back to their
+    native Python types so the rendered JSON is clean.
+    """
+    if isinstance(obj, str):
+        m = _MARIMO_TYPE_RE.match(obj)
+        if m:
+            type_tag, raw = m.group(1), m.group(2)
+            if type_tag == "float":
+                try:
+                    return float(raw)
+                except ValueError:
+                    return raw
+            if type_tag == "int":
+                try:
+                    return int(raw)
+                except ValueError:
+                    return raw
+            if type_tag == "bool":
+                return raw.lower() == "true"
+            if type_tag in ("none", "NoneType"):
+                return None
+            return raw
+        return obj
+    if isinstance(obj, list):
+        return [_strip_marimo_type_prefixes(item) for item in obj]
+    if isinstance(obj, dict):
+        return {k: _strip_marimo_type_prefixes(v) for k, v in obj.items()}
+    return obj
 
 
 def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
@@ -144,25 +181,41 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
             val = bundle.get(mime_key)
             if val:
                 if mime_key.startswith("image/"):
-                    return "figure", f'<img src="{escape(val, quote=True)}" alt="{escape(mime_key.split("/")[1], quote=True)}">'
+                    return (
+                        "figure",
+                        f'<img src="{escape(val, quote=True)}" alt="{escape(mime_key.split("/")[1], quote=True)}">',
+                    )
                 if mime_key == "text/html":
                     return "html", unescape(val)
                 if mime_key == "text/plain" and val.strip():
                     return "text", f"<pre>{escape(val)}</pre>"
 
     # Standalone image MIME types
-    for mime_type in ("image/png", "image/jpeg", "image/gif", "image/svg+xml", "image/tiff", "image/avif", "image/bmp", "image/webp"):
+    for mime_type in (
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/svg+xml",
+        "image/tiff",
+        "image/avif",
+        "image/bmp",
+        "image/webp",
+    ):
         img_val = data.get(mime_type)
         if img_val:
             fmt = mime_type.split("/")[1]
-            return "figure", f'<img src="{escape(img_val, quote=True)}" alt="{escape(fmt, quote=True)}">'
+            return (
+                "figure",
+                f'<img src="{escape(img_val, quote=True)}" alt="{escape(fmt, quote=True)}">',
+            )
 
     # JSON output (dicts, lists, tuples)
     json_val = data.get("application/json")
     if json_val:
         try:
             parsed = json.loads(json_val)
-            formatted = json.dumps(parsed, indent=2, ensure_ascii=False)
+            cleaned = _strip_marimo_type_prefixes(parsed)
+            formatted = json.dumps(cleaned, indent=2, ensure_ascii=False)
         except (json.JSONDecodeError, TypeError):
             formatted = json_val
         return "json", f"<pre><code>{escape(formatted)}</code></pre>"
@@ -173,7 +226,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
         content = latex_val.strip()
         if content.startswith("$$") and content.endswith("$$"):
             return "latex", content
-        if content.startswith("$") and content.endswith("$") and not content.startswith("$$"):
+        if (
+            content.startswith("$")
+            and content.endswith("$")
+            and not content.startswith("$$")
+        ):
             return "latex", f"${content[1:-1]}$"
         return "latex", f"$$\n{content}\n$$"
 
@@ -210,7 +267,10 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     }
     for mime_type in unsupported:
         if mime_type in data:
-            return "unsupported", f"<!-- unsupported output type: {escape(mime_type)} -->"
+            return (
+                "unsupported",
+                f"<!-- unsupported output type: {escape(mime_type)} -->",
+            )
 
     return None
 
@@ -250,7 +310,9 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             for c in cell.get("console", [])
             if c.get("name") == "stderr"
         )
-        stderr_html = f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
+        stderr_html = (
+            f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
+        )
 
         # Console media output (images printed to console)
         media_parts = []
@@ -261,7 +323,9 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             data = c.get("data", "")
             if mimetype.startswith("image/") and data:
                 fmt = mimetype.split("/")[1]
-                media_parts.append(f'<img src="{escape(data, quote=True)}" alt="{escape(fmt, quote=True)}">')
+                media_parts.append(
+                    f'<img src="{escape(data, quote=True)}" alt="{escape(fmt, quote=True)}">'
+                )
         media_html = "\n".join(media_parts)
 
         output_parts: list[tuple[str, str]] = []

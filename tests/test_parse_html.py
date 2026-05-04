@@ -205,7 +205,12 @@ def test_stream_media_image():
         "code_hash": _md5(code.strip()),
         "id": "mmm",
         "console": [
-            {"type": "streamMedia", "name": "media", "data": _PNG_DATA, "mimetype": "image/png"}
+            {
+                "type": "streamMedia",
+                "name": "media",
+                "data": _PNG_DATA,
+                "mimetype": "image/png",
+            }
         ],
         "outputs": [],
     }
@@ -224,8 +229,18 @@ def test_stream_media_with_stdout():
         "code_hash": _md5(code.strip()),
         "id": "nnn",
         "console": [
-            {"name": "stdout", "text": "hi\n", "type": "stream", "mimetype": "text/plain"},
-            {"type": "streamMedia", "name": "media", "data": _PNG_DATA, "mimetype": "image/png"},
+            {
+                "name": "stdout",
+                "text": "hi\n",
+                "type": "stream",
+                "mimetype": "text/plain",
+            },
+            {
+                "type": "streamMedia",
+                "name": "media",
+                "data": _PNG_DATA,
+                "mimetype": "image/png",
+            },
         ],
         "outputs": [],
     }
@@ -777,9 +792,7 @@ def test_standalone_image_png():
         "code_hash": _md5(code.strip()),
         "id": "ddd",
         "console": [],
-        "outputs": [
-            {"type": "data", "data": {"image/png": _PNG_DATA}}
-        ],
+        "outputs": [{"type": "data", "data": {"image/png": _PNG_DATA}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
@@ -796,9 +809,7 @@ def test_standalone_image_jpeg():
         "code_hash": _md5(code.strip()),
         "id": "eee",
         "console": [],
-        "outputs": [
-            {"type": "data", "data": {"image/jpeg": jpeg_data}}
-        ],
+        "outputs": [{"type": "data", "data": {"image/jpeg": jpeg_data}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
@@ -815,9 +826,7 @@ def test_standalone_image_svg():
         "code_hash": _md5(code.strip()),
         "id": "fff",
         "console": [],
-        "outputs": [
-            {"type": "data", "data": {"image/svg+xml": svg_data}}
-        ],
+        "outputs": [{"type": "data", "data": {"image/svg+xml": svg_data}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
@@ -830,6 +839,7 @@ def test_standalone_image_svg():
 def test_generic_html_output_type():
     code = "html_out"
     import html as html_module
+
     html_val = html_module.escape("<div>some generic html</div>", quote=False)
     cell = {
         "code_hash": _md5(code.strip()),
@@ -842,6 +852,7 @@ def test_generic_html_output_type():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "html"
+
 
 def test_multiple_outputs_per_cell():
     code = "multi_output"
@@ -861,3 +872,53 @@ def test_multiple_outputs_per_cell():
     assert "result text" in out.raw_html
     assert "<p>extra</p>" in out.raw_html
 
+
+def test_json_type_prefix_stripping():
+    code = "typed_json"
+    import json as json_mod
+
+    raw = json_mod.dumps(
+        {"a": "text/plain+float:1.0", "b": "text/plain+int:42", "c": "text/plain+bool:True", "d": "text/plain+NoneType:None", "e": "plain string"}
+    )
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "json_typed",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"application/json": raw}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "json"
+    rendered = out.raw_html
+    assert "1.0" in rendered
+    assert "42" in rendered
+    assert "true" in rendered.lower() or "True" in rendered
+    assert "null" in rendered
+    assert "plain string" in rendered
+    assert "text/plain+float" not in rendered
+
+
+def test_error_null_traceback():
+    code = "err_null"
+    import json as json_mod
+
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err_null",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ValueError",
+                "evalue": "bad value",
+                "traceback": None,
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "ValueError" in out.raw_html
+    assert "bad value" in out.raw_html
