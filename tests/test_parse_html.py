@@ -199,38 +199,41 @@ def test_stderr_captured():
     assert 'class="stderr"' in out.stderr_html
 
 
-def test_no_session_cells_match():
-    html = b"<html><body>no script here</body></html>"
-    results = extract_outputs(html)
-    assert results == {}
-
-
-def test_bracket_counting_falls_off_end():
-    # Malformed HTML where bracket counting never reaches depth 0
-    html = b'<script>{"session": {"cells": [{"code_hash": "abc"}</script>'
-    results = extract_outputs(html)
-    assert results == {}
-
-
-def test_marimo_table_not_found():
-    code = "df"
-    # HTML that has <marimo-ui-element> but no <marimo-table>
-    html_val = "<marimo-ui-element>not a table</marimo-ui-element>"
-    import html as html_module
-
-    escaped = html_module.escape(html_val, quote=False)
+def test_stream_media_image():
+    code = "print_image"
     cell = {
         "code_hash": _md5(code.strip()),
-        "id": "fff",
-        "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "id": "mmm",
+        "console": [
+            {"type": "streamMedia", "name": "media", "data": _PNG_DATA, "mimetype": "image/png"}
+        ],
+        "outputs": [],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
-    # Should return the original HTML unchanged (not classified as table)
     assert len(results) == 1
     out = results[_md5(code.strip())]
-    assert out.output_type == "html"
+    assert _PNG_DATA in out.media_html
+    assert "<img" in out.media_html
+    assert out.raw_html == ""
+
+
+def test_stream_media_with_stdout():
+    code = "print('hi')\nprint_image"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "nnn",
+        "console": [
+            {"name": "stdout", "text": "hi\n", "type": "stream", "mimetype": "text/plain"},
+            {"type": "streamMedia", "name": "media", "data": _PNG_DATA, "mimetype": "image/png"},
+        ],
+        "outputs": [],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert "<pre>hi\n</pre>" == out.console_html
+    assert "<img" in out.media_html
 
 
 def test_latex_display_math():

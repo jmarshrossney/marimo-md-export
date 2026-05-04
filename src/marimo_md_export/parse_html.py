@@ -237,6 +237,18 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
         )
         stderr_html = f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
 
+        # Console media output (images printed to console)
+        media_parts = []
+        for c in cell.get("console", []):
+            if c.get("type") != "streamMedia":
+                continue
+            mimetype = c.get("mimetype", "")
+            data = c.get("data", "")
+            if mimetype.startswith("image/") and data:
+                fmt = mimetype.split("/")[1]
+                media_parts.append(f'<img src="{escape(data, quote=True)}" alt="{escape(fmt, quote=True)}">')
+        media_html = "\n".join(media_parts)
+
         raw_html = ""
         output_type = "unknown"
         for output in cell.get("outputs", []):
@@ -253,7 +265,7 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             output_type, raw_html = classified
             break  # first renderable output per cell wins
 
-        if not console_html and not stderr_html and not raw_html:
+        if not console_html and not stderr_html and not media_html and not raw_html:
             continue
 
         results[code_hash] = ExtractedOutput(
@@ -262,6 +274,7 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             cell_id=cell_id,
             console_html=console_html,
             stderr_html=stderr_html,
+            media_html=media_html,
         )
 
     return results
