@@ -6,4 +6,5 @@ __marimo__/
 .coverage
 
 example.md
-plan.md
+
+notes/

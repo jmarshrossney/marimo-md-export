@@ -878,7 +878,13 @@ def test_json_type_prefix_stripping():
     import json as json_mod
 
     raw = json_mod.dumps(
-        {"a": "text/plain+float:1.0", "b": "text/plain+int:42", "c": "text/plain+bool:True", "d": "text/plain+NoneType:None", "e": "plain string"}
+        {
+            "a": "text/plain+float:1.0",
+            "b": "text/plain+int:42",
+            "c": "text/plain+bool:True",
+            "d": "text/plain+NoneType:None",
+            "e": "plain string",
+        }
     )
     cell = {
         "code_hash": _md5(code.strip()),
@@ -901,7 +907,6 @@ def test_json_type_prefix_stripping():
 
 def test_error_null_traceback():
     code = "err_null"
-    import json as json_mod
 
     cell = {
         "code_hash": _md5(code.strip()),

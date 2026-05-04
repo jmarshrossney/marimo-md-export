@@ -209,4 +209,6 @@ def test_stderr_injected_after_stdout():
     result, warnings = _inject(md, outputs)
     assert "<pre>out\n</pre>" in result
     assert '<pre class="stderr">err\n</pre>' in result
-    assert result.index("<pre>out\n</pre>") < result.index('<pre class="stderr">err\n</pre>')
+    assert result.index("<pre>out\n</pre>") < result.index(
+        '<pre class="stderr">err\n</pre>'
+    )
