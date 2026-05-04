@@ -36,7 +36,8 @@ def _table_to_gfm(html: str) -> str | None:
     sep = ["---"] * ncols
 
     def _row(cells: list[str]) -> str:
-        return "| " + " | ".join(cells) + " |"
+        escaped = [c.replace("|", "\\|") for c in cells]
+        return "| " + " | ".join(escaped) + " |"
 
     lines = [_row(header), _row(sep), *(_row(r) for r in body)]
     return "\n".join(lines)

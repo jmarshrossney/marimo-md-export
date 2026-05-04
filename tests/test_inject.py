@@ -150,3 +150,16 @@ def test_table_to_gfm_uneven_rows():
     )
     result = _table_to_gfm(html)
     assert result is None
+
+
+def test_table_to_gfm_pipe_escaped():
+    from marimo_md_export.inject import _table_to_gfm
+
+    html = (
+        "<table><thead><tr><th>Expr</th><th>Result</th></tr></thead>"
+        "<tbody><tr><td>a | b</td><td>x || y</td></tr></tbody></table>"
+    )
+    result = _table_to_gfm(html)
+    assert result is not None
+    assert r"\|" in result
+    assert r"| a \| b |" in result
