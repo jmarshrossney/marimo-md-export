@@ -75,10 +75,12 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
         field_types_raw = "[]"
 
     # data-data is a JSON-quoted string containing an array of row objects.
-    # It may contain literal NaN (not valid JSON).
+    # It may contain literal NaN (not valid JSON). Replace only bare NaN
+    # tokens (not inside quoted string values) to avoid clobbering strings
+    # like "NaN handling".
     try:
         inner = json.loads(data_data)  # unwrap outer JSON string
-        cleaned = inner.replace("NaN", "null")
+        cleaned = re.sub(r'(?<!")\bNaN\b(?!")', "null", inner)
         rows = json.loads(cleaned)
     except (json.JSONDecodeError, AttributeError):
         return marimo_table_html

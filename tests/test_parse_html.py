@@ -273,6 +273,36 @@ def test_field_types_json_decode_error():
     assert "<table" in out.raw_html
 
 
+def test_nan_in_string_value_not_replaced():
+    code = "# @output: tbl\ndf"
+    # A string column value "NaN handling" should NOT have its NaN replaced
+    # with null — only bare NaN tokens (word boundaries) should be replaced.
+    # Build data-data manually: use NaN as bare values where appropriate
+    data_inner = '[{"col": "NaN handling"}, {"col": NaN}]'
+    data_data = json.dumps(data_inner)
+    marimo_table = (
+        f"<marimo-ui-element>"
+        f"<marimo-table data-data='{data_data}' data-field-types='[[\"col\", [\"string\", \"str\"]]]'>"
+        f"</marimo-table></marimo-ui-element>"
+    )
+    import html as html_module
+
+    escaped = html_module.escape(marimo_table, quote=False)
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "kkk",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html, {_md5(code.strip())})
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "table"
+    # "NaN handling" should be preserved, not turned into "null handling"
+    assert "NaN handling" in out.raw_html
+
+
 def test_marimo_mimebundle_json_decode_error():
     code = "# @output: fig\nfig"
     # Invalid JSON in marimo mimebundle
