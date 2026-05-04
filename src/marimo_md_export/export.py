@@ -25,7 +25,7 @@ def _strip_header_key(frontmatter: str) -> str | None:
             continue
 
         found = True
-        value_part = line[len("header:"):].strip()
+        value_part = line[len("header:") :].strip()
         # Detect block scalar indicators: |, |-, >, >-
         is_block = value_part in ("|", "|-", ">", ">-")
         if is_block:

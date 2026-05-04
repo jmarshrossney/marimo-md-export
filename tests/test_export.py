@@ -1,9 +1,15 @@
+import os
 import subprocess
 from unittest.mock import patch
 
 import pytest
 
-from marimo_md_export.export import export_html, export_md, strip_header_from_frontmatter
+from marimo_md_export.export import (
+    export_html,
+    export_md,
+    strip_header_from_frontmatter,
+    _run_with_visible_output,
+)
 
 
 def _failed_result(stderr: str = "error") -> subprocess.CompletedProcess[str]:
@@ -46,6 +52,41 @@ def test_export_md_timeout_raises():
     ):
         with pytest.raises(RuntimeError, match="timed out"):
             export_md("notebook.py", timeout=10)
+
+
+class TestRunWithVisibleOutput:
+    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+
+    def test_success(self):
+        result = _run_with_visible_output(
+            [os.sys.executable, "-c", "pass"], env=self.env, timeout=10
+        )
+        assert result.returncode == 0
+
+    def test_stderr_captured(self):
+        result = _run_with_visible_output(
+            [os.sys.executable, "-c", "import sys; print('err', file=sys.stderr)"],
+            env=self.env,
+            timeout=10,
+        )
+        assert result.returncode == 0
+        assert "err" in result.stderr
+
+    def test_nonzero_exit_code(self):
+        result = _run_with_visible_output(
+            [os.sys.executable, "-c", "import sys; sys.exit(42)"],
+            env=self.env,
+            timeout=10,
+        )
+        assert result.returncode == 42
+
+    def test_timeout(self):
+        with pytest.raises(subprocess.TimeoutExpired):
+            _run_with_visible_output(
+                [os.sys.executable, "-c", "import time; time.sleep(60)"],
+                env=self.env,
+                timeout=1,
+            )
 
 
 class TestStripHeaderFromFrontmatter:

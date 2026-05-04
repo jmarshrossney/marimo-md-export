@@ -282,7 +282,7 @@ def test_nan_in_string_value_not_replaced():
     data_data = json.dumps(data_inner)
     marimo_table = (
         f"<marimo-ui-element>"
-        f"<marimo-table data-data='{data_data}' data-field-types='[[\"col\", [\"string\", \"str\"]]]'>"
+        f'<marimo-table data-data=\'{data_data}\' data-field-types=\'[["col", ["string", "str"]]]\'>'
         f"</marimo-table></marimo-ui-element>"
     )
     import html as html_module
