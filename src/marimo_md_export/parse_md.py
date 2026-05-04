@@ -14,7 +14,7 @@ def _md5(text: str) -> str:
 
 def collect_marked_cells(md: str) -> list[MarkedCell]:
     """Return one MarkedCell for each fenced block that contains an @output marker."""
-    seen_labels: dict[str, int] = {}
+    seen_labels: set[str] = set()
     results: list[MarkedCell] = []
 
     for block_match in _BLOCK_RE.finditer(md):
@@ -30,7 +30,7 @@ def collect_marked_cells(md: str) -> list[MarkedCell]:
             raise ValueError(
                 f"Duplicate @output label {label!r} — each label must be unique"
             )
-        seen_labels[label] = 1
+        seen_labels.add(label)
 
         results.append(
             MarkedCell(
