@@ -28,27 +28,31 @@ from bs4 import BeautifulSoup
 from .models import ExtractedOutput
 
 _SESSION_CELLS_RE = re.compile(
-    r'"session"\s*:\s*\{"cells"\s*:\s*(\[)',
+    r'"session"\s*:\s*\{"cells"\s*:\s*\[',
 )
+
+_decoder = json.JSONDecoder()
 
 
 def _extract_session_cells_raw(html: bytes) -> str:
-    """Return the raw JSON string for session.cells from the HTML."""
+    """Return the raw JSON string for session.cells from the HTML.
+
+    Uses json.JSONDecoder.raw_decode to correctly handle brackets inside
+    JSON string values, which the previous bracket-counting approach could
+    mis-parse.
+    """
     text = html.decode("utf-8", errors="replace")
     m = _SESSION_CELLS_RE.search(text)
     if m is None:
         return "[]"
 
-    start = m.start(1)
-    depth = 0
-    for i, ch in enumerate(text[start:], start=start):
-        if ch == "[":
-            depth += 1
-        elif ch == "]":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    return "[]"
+    start = m.end() - 1  # position of the opening '['
+    try:
+        _, end = _decoder.raw_decode(text, idx=start)
+    except json.JSONDecodeError:
+        return "[]"
+
+    return text[start:end]
 
 
 def _table_html_from_marimo_table(marimo_table_html: str) -> str:
