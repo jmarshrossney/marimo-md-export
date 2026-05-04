@@ -222,9 +222,9 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
     that has a renderable output. The cell_id is populated from marimo's
     internal cell identifier.
 
-    If a cell has multiple outputs, only the first renderable one is used
-    (in MIME-type priority order: marimo mimebundle → text/html → text/plain).
-    Console output (stdout and stderr) is always captured independently.
+    If a cell has multiple renderable outputs, all are collected and joined
+    (in MIME-type priority order). Console output (stdout and stderr) is
+    always captured independently.
     """
     cells_raw = _extract_session_cells_raw(html)
     try:
@@ -264,21 +264,21 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
                 media_parts.append(f'<img src="{escape(data, quote=True)}" alt="{escape(fmt, quote=True)}">')
         media_html = "\n".join(media_parts)
 
-        raw_html = ""
-        output_type = "unknown"
+        output_parts: list[tuple[str, str]] = []
         for output in cell.get("outputs", []):
             if output.get("type") == "error":
                 error_html = _format_error(output)
                 if error_html:
-                    output_type = "error"
-                    raw_html = error_html
+                    output_parts.append(("error", error_html))
                     break
             data = output.get("data", {})
             classified = _classify_and_build(data)
             if classified is None:
                 continue
-            output_type, raw_html = classified
-            break  # first renderable output per cell wins
+            output_parts.append(classified)
+
+        raw_html = "\n\n".join(html for _, html in output_parts) if output_parts else ""
+        output_type = output_parts[0][0] if output_parts else "unknown"
 
         if not console_html and not stderr_html and not media_html and not raw_html:
             continue

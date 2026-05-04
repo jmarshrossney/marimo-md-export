@@ -842,3 +842,22 @@ def test_generic_html_output_type():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "html"
+
+def test_multiple_outputs_per_cell():
+    code = "multi_output"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ooo",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"text/plain": "result text"}},
+            {"type": "data", "data": {"text/html": "<p>extra</p>"}},
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert "result text" in out.raw_html
+    assert "<p>extra</p>" in out.raw_html
+
