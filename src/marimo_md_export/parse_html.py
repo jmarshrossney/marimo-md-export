@@ -8,8 +8,14 @@
 #     .code_hash  — MD5 hex digest of cell source (stripped)
 #     .id         — marimo's internal cell identifier (e.g. "aaa", "bbb")
 #     .outputs[]
-#       .type     — "data"
-#       .data     — dict of MIME type → value
+#       .type     — "data" or "error"
+#       .data     — dict of MIME type → value (for type "data")
+#       .ename    — exception class name (for type "error")
+#       .evalue   — exception message (for type "error")
+#       .traceback — list of traceback lines (for type "error")
+#     .console[]
+#       .name     — "stdout" or "stderr"
+#       .text     — console text content
 #
 # Supported MIME types:
 #   application/vnd.marimo+mimebundle  — JSON string; "image/png" key → figure
@@ -103,6 +109,21 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     return f"<table><thead><tr>{header}</tr></thead><tbody>{body_rows}</tbody></table>"
 
 
+def _format_error(output: dict) -> str:
+    """Format an error output as HTML.
+
+    Error outputs have: ename, evalue, traceback fields.
+    """
+    ename = escape(output.get("ename", "Error"))
+    evalue = escape(output.get("evalue", ""))
+    traceback_lines = output.get("traceback", [])
+    traceback_text = escape("\n".join(traceback_lines))
+    parts = [f"<strong>{ename}</strong>: {evalue}"]
+    if traceback_text.strip():
+        parts.append(f"<pre>{traceback_text}</pre>")
+    return "\n".join(parts)
+
+
 def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     """
     Given the output data dict (MIME → value), return (output_type, raw_html)
@@ -181,6 +202,12 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
         raw_html = ""
         output_type = "unknown"
         for output in cell.get("outputs", []):
+            if output.get("type") == "error":
+                error_html = _format_error(output)
+                if error_html:
+                    output_type = "error"
+                    raw_html = error_html
+                    break
             data = output.get("data", {})
             classified = _classify_and_build(data)
             if classified is None:

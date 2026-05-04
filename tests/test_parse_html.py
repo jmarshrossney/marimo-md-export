@@ -492,3 +492,102 @@ def test_json_combined_with_console():
     out = results[_md5(code.strip())]
     assert out.console_html == "<pre>hi\n</pre>"
     assert out.output_type == "json"
+
+
+def test_error_output_extraction():
+    code = "1 / 0"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err1",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ZeroDivisionError",
+                "evalue": "division by zero",
+                "traceback": [
+                    "Traceback (most recent call last):",
+                    '  File "<stdin>", line 1, in <module>',
+                    "ZeroDivisionError: division by zero",
+                ],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "<strong>ZeroDivisionError</strong>" in out.raw_html
+    assert "division by zero" in out.raw_html
+    assert "<pre>" in out.raw_html
+
+
+def test_error_without_traceback():
+    code = "raise ValueError"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err2",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ValueError",
+                "evalue": "bad value",
+                "traceback": [],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "<strong>ValueError</strong>" in out.raw_html
+    assert "<pre>" not in out.raw_html
+
+
+def test_error_takes_priority_over_data():
+    code = "bad_cell"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err3",
+        "console": [],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "RuntimeError",
+                "evalue": "failed",
+                "traceback": ["line 1"],
+            },
+            {"type": "data", "data": {"text/plain": "should not appear"}},
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.output_type == "error"
+    assert "RuntimeError" in out.raw_html
+    assert "should not appear" not in out.raw_html
+
+
+def test_error_with_console_output():
+    code = "print('before')\n1/0"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "err4",
+        "console": [{"name": "stdout", "text": "before\n"}],
+        "outputs": [
+            {
+                "type": "error",
+                "ename": "ZeroDivisionError",
+                "evalue": "division by zero",
+                "traceback": ["traceback line"],
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    out = results[_md5(code.strip())]
+    assert out.console_html == "<pre>before\n</pre>"
+    assert out.output_type == "error"
