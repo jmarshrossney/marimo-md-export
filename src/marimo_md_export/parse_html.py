@@ -18,11 +18,12 @@
 #       .text     — console text content
 #
 # Supported MIME types:
-#   application/vnd.marimo+mimebundle  — JSON string; "image/png" key → figure
-#   application/json                   — pretty-printed JSON (dicts, lists, etc.)
-#   text/html                          — may contain <marimo-table> web component
-#   text/markdown                      — rendered markdown (not captured; already in MD export)
-#   text/plain                         — plain text
+#   application/vnd.marimo+mimebundle  — JSON string; may contain image/png, image/svg+xml, text/html, text/plain
+#   image/*                             — standalone image outputs (png, jpeg, svg+xml, etc.)
+#   application/json                    — pretty-printed JSON (dicts, lists, etc.)
+#   text/html                           — may contain <marimo-table> web component
+#   text/markdown                       — rendered markdown (not captured; already in MD export)
+#   text/plain                          — plain text
 #
 # Tables are stored as <marimo-table data-data='...'> web components.
 # `data-data` is a JSON-quoted string of row objects; NaN appears literally.
@@ -129,16 +130,29 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     Given the output data dict (MIME → value), return (output_type, raw_html)
     or None if there is nothing renderable.
     """
-    # Figure: marimo mimebundle with image/png
+    # Figure: marimo mimebundle — try representations in priority order
     bundle_raw = data.get("application/vnd.marimo+mimebundle")
     if bundle_raw:
         try:
             bundle = json.loads(bundle_raw)
         except json.JSONDecodeError:
             bundle = {}
-        src = bundle.get("image/png")
-        if src:
-            return "figure", f'<img src="{escape(src, quote=True)}" alt="figure">'
+        for mime_key in ("image/png", "image/svg+xml", "text/html", "text/plain"):
+            val = bundle.get(mime_key)
+            if val:
+                if mime_key.startswith("image/"):
+                    return "figure", f'<img src="{escape(val, quote=True)}" alt="{escape(mime_key.split("/")[1], quote=True)}">'
+                if mime_key == "text/html":
+                    return "html", unescape(val)
+                if mime_key == "text/plain" and val.strip():
+                    return "text", f"<pre>{escape(val)}</pre>"
+
+    # Standalone image MIME types
+    for mime_type in ("image/png", "image/jpeg", "image/gif", "image/svg+xml", "image/tiff", "image/avif", "image/bmp", "image/webp"):
+        img_val = data.get(mime_type)
+        if img_val:
+            fmt = mime_type.split("/")[1]
+            return "figure", f'<img src="{escape(img_val, quote=True)}" alt="{escape(fmt, quote=True)}">'
 
     # JSON output (dicts, lists, tuples)
     json_val = data.get("application/json")
@@ -160,7 +174,7 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
         # Generic HTML (e.g. styled dataframe rendered as <table>)
         if "<table" in decoded:
             return "table", decoded
-        return "unknown", decoded
+        return "html", decoded
 
     plain = data.get("text/plain", "")
     if plain and plain.strip():

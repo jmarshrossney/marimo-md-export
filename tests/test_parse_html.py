@@ -221,7 +221,7 @@ def test_marimo_table_not_found():
     # Should return the original HTML unchanged (not classified as table)
     assert len(results) == 1
     out = results[_md5(code.strip())]
-    assert out.output_type == "unknown"
+    assert out.output_type == "html"
 
 
 def test_table_data_json_decode_error():
@@ -629,3 +629,134 @@ def test_stderr_only_captured():
     out = results[_md5(code.strip())]
     assert out.console_html == ""
     assert "WARNING:root:watch out" in out.stderr_html
+
+
+def test_mimebundle_svg_fallback():
+    code = "svg_fig"
+    svg_data = "data:image/svg+xml,...svgcontent..."
+    bundle = json.dumps({"image/svg+xml": svg_data})
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "aaa",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "image/svg+xml" in out.raw_html
+
+
+def test_mimebundle_html_fallback():
+    code = "html_output"
+    bundle = json.dumps({"text/html": "<p>Hello</p>"})
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "bbb",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
+    assert "<p>Hello</p>" in out.raw_html
+
+
+def test_mimebundle_text_fallback():
+    code = "text_output"
+    bundle = json.dumps({"text/plain": "simple text"})
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ccc",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "text"
+    assert "simple text" in out.raw_html
+
+
+def test_standalone_image_png():
+    code = "img_png"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ddd",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"image/png": _PNG_DATA}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert _PNG_DATA in out.raw_html
+
+
+def test_standalone_image_jpeg():
+    code = "img_jpeg"
+    jpeg_data = "data:image/jpeg;base64,/9j/4AAQ..."
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "eee",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"image/jpeg": jpeg_data}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "jpeg" in out.raw_html
+
+
+def test_standalone_image_svg():
+    code = "img_svg"
+    svg_data = "data:image/svg+xml,...svgcontent..."
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "fff",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"image/svg+xml": svg_data}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "svg+xml" in out.raw_html
+
+
+def test_generic_html_output_type():
+    code = "html_out"
+    import html as html_module
+    html_val = html_module.escape("<div>some generic html</div>", quote=False)
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ggg",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"text/html": html_val}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
