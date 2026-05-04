@@ -1,5 +1,3 @@
-import pytest
-
 from marimo_md_export.inject import inject_outputs
 from marimo_md_export.models import ExtractedOutput
 from marimo_md_export.parse_md import collect_marked_cells
@@ -39,7 +37,7 @@ def _build_outputs(md: str, overrides: dict | None = None) -> dict:
     return outputs
 
 
-def _inject(md: str, outputs: dict) -> str:
+def _inject(md: str, outputs: dict) -> tuple[str, list[str]]:
     return inject_outputs(md, collect_marked_cells(md), outputs)
 
 
@@ -50,12 +48,13 @@ def test_figure_injected_after_block():
     source = "# @output: my_fig\nfig"
     md = _md_with_block(source)
     outputs = _build_outputs(md)
-    result = _inject(md, outputs)
+    result, warnings = _inject(md, outputs)
     block = _block(source)
     assert block in result
     img_pos = result.index('<img src="data:image/png')
     block_end = result.index(block) + len(block)
     assert img_pos > block_end
+    assert warnings == []
 
 
 def test_table_converted_to_gfm():
@@ -67,9 +66,10 @@ def test_table_converted_to_gfm():
         "<tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
     )
     outputs = {cells[0].source_hash: _table_output("tbl", simple_table)}
-    result = _inject(md, outputs)
+    result, warnings = _inject(md, outputs)
     assert "| A | B |" in result
     assert "| 1 | 2 |" in result
+    assert warnings == []
 
 
 def test_table_falls_back_to_html():
@@ -81,7 +81,7 @@ def test_table_falls_back_to_html():
         "<tbody><tr><td>a</td><td>b</td></tr></tbody></table>"
     )
     outputs = {cells[0].source_hash: _table_output("merged", merged_table)}
-    result = _inject(md, outputs)
+    result, warnings = _inject(md, outputs)
     assert "<table" in result
 
 
@@ -94,19 +94,20 @@ def test_table_falls_back_to_html_on_uneven_rows():
         "<tbody><tr><td>1</td></tr></tbody></table>"
     )
     outputs = {cells[0].source_hash: _table_output("uneven", uneven_table)}
-    result = _inject(md, outputs)
+    result, warnings = _inject(md, outputs)
     assert "<table" in result
 
 
-def test_missing_output_warns():
+def test_missing_output_returns_warning():
     source = "# @output: ghost\nx"
     md = _md_with_block(source)
-    with pytest.warns(UserWarning, match="ghost"):
-        result = _inject(md, {})
+    result, warnings = _inject(md, {})
     assert _block(source) in result
     block_end_idx = result.index(_block(source)) + len(_block(source))
     tail = result[block_end_idx:]
     assert "<!-- @output:" not in tail
+    assert len(warnings) == 1
+    assert "ghost" in warnings[0]
 
 
 def test_unmarked_blocks_unchanged():
@@ -114,17 +115,19 @@ def test_unmarked_blocks_unchanged():
     source_plain = "x = 1\ny = 2"
     md = _block(source_plain) + "\n\n" + _block(source_marked)
     outputs = _build_outputs(md)
-    result = _inject(md, outputs)
+    result, warnings = _inject(md, outputs)
     assert _block(source_plain) in result
     assert "<!-- @output:real -->" in result
+    assert warnings == []
 
 
 def test_output_comment_injected():
     source = "# @output: labelled\nfig"
     md = _md_with_block(source)
     outputs = _build_outputs(md)
-    result = _inject(md, outputs)
+    result, warnings = _inject(md, outputs)
     assert "<!-- @output:labelled -->" in result
+    assert warnings == []
 
 
 def test_table_to_gfm_no_table():

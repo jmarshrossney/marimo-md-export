@@ -1,11 +1,14 @@
 from pathlib import Path
 
 import typer
+from rich.console import Console
 
 from .export import export_html, export_md, strip_header_from_frontmatter
 from .inject import inject_outputs
 from .parse_html import extract_outputs
 from .parse_md import collect_marked_cells
+
+_err_console = Console(stderr=True)
 
 app = typer.Typer(
     help="Export a marimo (.py) notebook to markdown (.md) with rendered outputs embedded inline.",
@@ -62,7 +65,7 @@ def main(
     in an isolated uv environment.
     """
     extra = marimo_args.split() if marimo_args.strip() else []
-    timeout_val = timeout or None
+    timeout_val: int | None = timeout or None
 
     if verbose:
         typer.echo(f"Exporting markdown: {notebook}")
@@ -74,10 +77,10 @@ def main(
 
     marked = collect_marked_cells(md)
     if not marked:
-        typer.echo(
+        _err_console.print(
             f"WARNING: no @output markers found in {notebook}. "
             "Did you forget to add '# @output: <label>' comments?",
-            err=True,
+            style="bold yellow",
         )
         raise typer.Exit(2)
 
@@ -103,7 +106,10 @@ def main(
     target_hashes = {c.source_hash for c in marked}
     outputs = extract_outputs(html, target_hashes)
 
-    result = inject_outputs(md, marked, outputs)
+    result, warnings = inject_outputs(md, marked, outputs)
+
+    for warning in warnings:
+        _err_console.print(f"WARNING: {warning}", style="bold yellow")
 
     result = strip_header_from_frontmatter(result)
 

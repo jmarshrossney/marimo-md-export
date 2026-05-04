@@ -1,6 +1,3 @@
-import sys
-import warnings
-
 from bs4 import BeautifulSoup
 
 from .models import ExtractedOutput, MarkedCell
@@ -63,25 +60,24 @@ def inject_outputs(
     md: str,
     marked_cells: list[MarkedCell],
     outputs: dict[str, ExtractedOutput],
-) -> str:
+) -> tuple[str, list[str]]:
     """Inject rendered outputs into the markdown after each marked code block.
 
     marked_cells should come from collect_marked_cells(md).  outputs maps
     source_hash → ExtractedOutput.  Labels are set from the corresponding
     MarkedCell during injection.
+
+    Returns (result_markdown, warnings) where warnings is a list of
+    human-readable messages for outputs that had no matching rendered data.
     """
     result = md
+    warnings: list[str] = []
     for cell in marked_cells:
         matched = outputs.get(cell.source_hash)
         if matched is None:
-            warnings.warn(
-                f"WARNING: no output found for @output:{cell.label} "
-                f"(hash {cell.source_hash[:8]})",
-                stacklevel=2,
-            )
-            print(
-                f"WARNING: no output found for @output:{cell.label}",
-                file=sys.stderr,
+            warnings.append(
+                f"no output found for @output:{cell.label} "
+                f"(hash {cell.source_hash[:8]})"
             )
             continue
 
@@ -91,4 +87,4 @@ def inject_outputs(
             cell.block_text, cell.block_text + "\n\n" + formatted, 1
         )
 
-    return result
+    return result, warnings
