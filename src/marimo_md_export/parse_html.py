@@ -21,6 +21,8 @@
 #   application/vnd.marimo+mimebundle  — JSON string; may contain image/png, image/svg+xml, text/html, text/plain
 #   image/*                             — standalone image outputs (png, jpeg, svg+xml, etc.)
 #   application/json                    — pretty-printed JSON (dicts, lists, etc.)
+#   text/latex                          — LaTeX math (wrapped in $$ delimiters)
+#   text/csv                            — CSV data (rendered as code block)
 #   text/html                           — may contain <marimo-table> web component
 #   text/markdown                       — rendered markdown (not captured; already in MD export)
 #   text/plain                          — plain text
@@ -163,6 +165,21 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
         except (json.JSONDecodeError, TypeError):
             formatted = json_val
         return "json", f"<pre><code>{escape(formatted)}</code></pre>"
+
+    # LaTeX output — wrap in $$ delimiters for math rendering
+    latex_val = data.get("text/latex", "")
+    if latex_val and latex_val.strip():
+        content = latex_val.strip()
+        if content.startswith("$$") and content.endswith("$$"):
+            return "latex", content
+        if content.startswith("$") and content.endswith("$") and not content.startswith("$$"):
+            return "latex", f"${content[1:-1]}$"
+        return "latex", f"$$\n{content}\n$$"
+
+    # CSV output — render as a plain text code block
+    csv_val = data.get("text/csv", "")
+    if csv_val and csv_val.strip():
+        return "csv", f"<pre><code>{escape(csv_val)}</code></pre>"
 
     # HTML output (may be a marimo-table web component)
     html_val = data.get("text/html")

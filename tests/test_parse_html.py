@@ -75,6 +75,15 @@ def _text_cell(code: str, text: str) -> dict:
     }
 
 
+def _data_cell(code: str, mime_type: str, value: str) -> dict:
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "zzz",
+        "console": [],
+        "outputs": [{"type": "data", "data": {mime_type: value}}],
+    }
+
+
 def _json_cell(code: str, obj: object) -> dict:
     return {
         "code_hash": _md5(code.strip()),
@@ -222,6 +231,53 @@ def test_marimo_table_not_found():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "html"
+
+
+def test_latex_display_math():
+    code = "latex_display"
+    cell = _data_cell(code, "text/latex", r"\int_0^1 x^2 dx")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "latex"
+    assert "$$" in out.raw_html
+    assert r"\int" in out.raw_html
+
+
+def test_latex_already_delimited():
+    code = "latex_delimited"
+    cell = _data_cell(code, "text/latex", "$$E=mc^2$$")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "latex"
+    assert out.raw_html == "$$E=mc^2$$"
+
+
+def test_latex_inline_delimited():
+    code = "latex_inline"
+    cell = _data_cell(code, "text/latex", "$x^2$")
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "latex"
+    assert out.raw_html == "$x^2$"
+
+
+def test_csv_output():
+    code = "csv_out"
+    csv_data = "name,age\nAlice,30\nBob,25"
+    cell = _data_cell(code, "text/csv", csv_data)
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "csv"
+    assert "Alice,30" in out.raw_html
+    assert "<pre><code>" in out.raw_html
 
 
 def test_table_data_json_decode_error():
