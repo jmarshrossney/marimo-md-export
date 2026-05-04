@@ -44,15 +44,18 @@ dev = [
     {include-group = "test"},
 ]
 docs = [
+    "zensical>=0.0.37",
+]
+examples = [
     "matplotlib>=3.10.9",
     "numpy>=2.4.4",
     "pandas>=3.0.2",
-    "zensical>=0.0.37",
 ]
 test = [
     "coverage>=7.13.5",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
+    {include-group = "examples"},
 ]
 
 [tool.ruff]

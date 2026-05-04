@@ -675,13 +675,18 @@ dev = [
     { name = "zensical" },
 ]
 docs = [
+    { name = "zensical" },
+]
+examples = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
-    { name = "zensical" },
 ]
 test = [
     { name = "coverage" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -707,14 +712,17 @@ dev = [
     { name = "rust-just", specifier = ">=1.50.0" },
     { name = "zensical", specifier = ">=0.0.37" },
 ]
-docs = [
+docs = [{ name = "zensical", specifier = ">=0.0.37" }]
+examples = [
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "numpy", specifier = ">=2.4.4" },
     { name = "pandas", specifier = ">=3.0.2" },
-    { name = "zensical", specifier = ">=0.0.37" },
 ]
 test = [
     { name = "coverage", specifier = ">=7.13.5" },
+    { name = "matplotlib", specifier = ">=3.10.9" },
+    { name = "numpy", specifier = ">=2.4.4" },
+    { name = "pandas", specifier = ">=3.0.2" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
 ]

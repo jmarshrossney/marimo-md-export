@@ -7,6 +7,7 @@ lint:
   ruff check
   marimo check examples/notebook.py
 
+# Same as `lint`, but doesn't make any formatting changes.
 lint-check:
   ruff format --check
   ruff check
@@ -27,6 +28,6 @@ typecheck:
 # Build the documentation using Zensical.
 docs:
   marimo-md-export examples/notebook.py docs/example.md \
-    --html-output docs/example-notebook.html
+    --html-output docs/example-notebook.html --sandbox
   zensical build
   # NOTE: run `python -m http.server -d site 8000` and open to see buttons
