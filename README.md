@@ -5,7 +5,6 @@
 [![License](https://img.shields.io/pypi/l/marimo-md-export)](https://github.com/jmarshrossney/marimo-md-export/blob/main/LICENSE)
 [![CI](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/ci.yml/badge.svg)](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/ci.yml)
 [![Docs](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/docs.yml/badge.svg)](https://jmarshrossney.github.io/marimo-md-export)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 A `uv` tool that wraps `marimo export`, extracts rendered outputs from the HTML export,
 and injects them into the markdown export. The result is a self-contained markdown
@@ -30,11 +29,37 @@ Then run:
 uvx marimo-md-export notebook.py output.md
 ```
 
-## Installation
+If you want the tool to be available globally you can "install" it with
 
 ```sh
-uv tool install marimo-md-export   # or: pipx install marimo-md-export
+uv tool install marimo-md-export
 ```
+
+## Integrating with documentation sites
+
+`marimo-md-export` is designed to produce markdown pages for static site generators like
+[mkdocs](https://www.mkdocs.org/) (Python) or
+[zensical](https://zensical.org/) (Rust). Both work identically for this purpose.
+
+**1. Add as a docs dependency:**
+
+```sh
+uv add --group docs marimo-md-export
+```
+
+**2. Add a build step** that converts your notebook(s) before building the site.
+
+For example, this project uses the following [just](https://github.com/casey/just) command to build the docs:
+
+```just
+docs:
+  marimo-md-export examples/notebook.py docs/example.md \
+    --html-output docs/example-notebook.html
+  zensical build
+```
+
+This runs `marimo-md-export` to produce a self-contained markdown page (with any
+`# @output:` cells injected as figures/tables), then builds the site.
 
 ## Development
 
