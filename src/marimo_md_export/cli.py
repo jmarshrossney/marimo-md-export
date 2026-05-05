@@ -5,7 +5,7 @@ from rich.console import Console
 
 from .export import export_html, export_md, strip_header_from_frontmatter
 from .inject import inject_outputs
-from .parse_html import extract_outputs
+from .parse_html import _extract_line_length, extract_outputs
 from .parse_md import collect_cells
 
 _err_console = Console(stderr=True)
@@ -95,7 +95,8 @@ def main(
         if verbose:
             typer.echo(f"Wrote {html_output}")
 
-    outputs = extract_outputs(html)
+    line_width = _extract_line_length(html)
+    outputs = extract_outputs(html, line_width)
     result, warnings = inject_outputs(md, cells, outputs)
 
     for warning in warnings:

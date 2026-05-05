@@ -35,6 +35,7 @@ import ast
 import json
 import pprint
 import re
+import textwrap
 from html import escape, unescape
 
 from bs4 import BeautifulSoup
@@ -45,7 +46,39 @@ _SESSION_CELLS_RE = re.compile(
     r'"session"\s*:\s*\{"cells"\s*:\s*\[',
 )
 
+_LINE_LENGTH_RE = re.compile(
+    r'"formatting"\s*:\s*\{[^}]*"line_length"\s*:\s*(\d+)',
+)
+
 _decoder = json.JSONDecoder()
+
+
+def _extract_line_length(html: bytes) -> int:
+    """Extract the line_length setting from marimo's HTML config.
+
+    Returns 79 (marimo's default) if not found.
+    """
+    text = html.decode("utf-8", errors="replace")
+    m = _LINE_LENGTH_RE.search(text)
+    if m:
+        return int(m.group(1))
+    return 79
+
+
+def _wrap_lines(text: str, width: int) -> str:
+    """Wrap long lines in text to the given width, preserving existing newlines."""
+    lines = text.split("\n")
+    wrapped = []
+    for line in lines:
+        if len(line) > width:
+            wrapped.extend(
+                textwrap.wrap(
+                    line, width=width, break_long_words=True, break_on_hyphens=False
+                )
+            )
+        else:
+            wrapped.append(line)
+    return "\n".join(wrapped)
 
 
 def _extract_session_cells_raw(html: bytes) -> str:
@@ -126,7 +159,7 @@ def _html_to_plain_text(html_str: str) -> str:
     return unescape(text)
 
 
-def _format_error(output: dict) -> str:
+def _format_error(output: dict, width: int) -> str:
     """Format an error output as plain text in a <pre> block.
 
     Error outputs have: ename, evalue, traceback fields.
@@ -142,7 +175,8 @@ def _format_error(output: dict) -> str:
         combined = f"{traceback_text}\n{ename}: {evalue}"
     else:
         combined = f"{ename}: {evalue}"
-    return f"<pre>{escape(combined)}</pre>"
+    combined = _wrap_lines(combined, width)
+    return f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(combined)}</pre>'
 
 
 _MARIMO_TYPE_RE = re.compile(r"^text/plain\+(\w+):(.*)$", re.DOTALL)
@@ -182,7 +216,7 @@ def _strip_marimo_type_prefixes(obj: object) -> object:
     return obj
 
 
-def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
+def _classify_and_build(data: dict[str, str], width: int) -> tuple[str, str] | None:
     """
     Given the output data dict (MIME → value), return (output_type, raw_html)
     or None if there is nothing renderable.
@@ -205,7 +239,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 if mime_key == "text/html":
                     return "html", unescape(val)
                 if mime_key == "text/plain" and val.strip():
-                    return "text", f"<pre>{escape(val)}</pre>"
+                    wrapped = _wrap_lines(val, width)
+                    return (
+                        "text",
+                        f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(wrapped)}</pre>',
+                    )
 
     # Standalone image MIME types
     for mime_type in (
@@ -232,10 +270,13 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
         try:
             parsed = json.loads(json_val)
             cleaned = _strip_marimo_type_prefixes(parsed)
-            formatted = pprint.pformat(cleaned)
+            formatted = pprint.pformat(cleaned, width=width)
         except (json.JSONDecodeError, TypeError):
             formatted = json_val
-        return "json", f"<pre>{escape(formatted)}</pre>"
+        return (
+            "json",
+            f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(formatted)}</pre>',
+        )
 
     # LaTeX output — wrap in $$ delimiters for math rendering.
     # NOTE: text/latex is a fallback MIME type and is not expected to appear
@@ -259,7 +300,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     # CSV output — render as a plain text code block
     csv_val = data.get("text/csv", "")
     if csv_val and csv_val.strip():
-        return "csv", f"<pre><code>{escape(csv_val)}</code></pre>"
+        wrapped = _wrap_lines(csv_val, width)
+        return (
+            "csv",
+            f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;"><code>{escape(wrapped)}</code></pre>',
+        )
 
     # HTML output (may be a marimo-table web component)
     html_val = data.get("text/html")
@@ -279,7 +324,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 except (ValueError, SyntaxError):
                     content = None
                 if content is not None:
-                    return "text", f"<pre>{escape(content)}</pre>"
+                    wrapped = _wrap_lines(content, width)
+                    return (
+                        "text",
+                        f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(wrapped)}</pre>',
+                    )
         if "<marimo-table" in decoded:
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html
@@ -299,7 +348,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 plain = ast.literal_eval(plain)
             except (ValueError, SyntaxError):
                 pass
-        return "text", f"<pre>{escape(plain)}</pre>"
+        wrapped = _wrap_lines(plain, width)
+        return (
+            "text",
+            f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(wrapped)}</pre>',
+        )
 
     # Unsupported MIME types — leave a comment for debugging
     unsupported = {
@@ -321,7 +374,7 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     return None
 
 
-def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
+def extract_outputs(html: bytes, line_width: int = 79) -> dict[str, ExtractedOutput]:
     """Extract rendered outputs from the marimo HTML export.
 
     Returns a dict mapping source_hash → ExtractedOutput for each cell
@@ -349,7 +402,12 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             for c in cell.get("console", [])
             if c.get("name") == "stdout"
         )
-        console_html = f"<pre>{escape(stdout)}</pre>" if stdout.strip() else ""
+        stdout_wrapped = _wrap_lines(stdout, line_width) if stdout.strip() else ""
+        console_html = (
+            f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(stdout_wrapped)}</pre>'
+            if stdout_wrapped
+            else ""
+        )
 
         # Stderr may contain Pygments-highlighted HTML; strip it to plain text
         stderr = "".join(
@@ -358,8 +416,11 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             if c.get("name") == "stderr"
         )
         stderr = _html_to_plain_text(stderr) if stderr.strip() else ""
+        stderr_wrapped = _wrap_lines(stderr, line_width) if stderr.strip() else ""
         stderr_html = (
-            f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
+            f'<pre class="stderr" style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(stderr_wrapped)}</pre>'
+            if stderr_wrapped
+            else ""
         )
 
         # Console media output (images printed to console)
@@ -379,12 +440,12 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
         output_parts: list[tuple[str, str]] = []
         for output in cell.get("outputs", []):
             if output.get("type") == "error":
-                error_html = _format_error(output)
+                error_html = _format_error(output, line_width)
                 if error_html:
                     output_parts.append(("error", error_html))
                     break
             data = output.get("data", {})
-            classified = _classify_and_build(data)
+            classified = _classify_and_build(data, line_width)
             if classified is None:
                 continue
             output_parts.append(classified)

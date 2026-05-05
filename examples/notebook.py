@@ -104,7 +104,8 @@ def _(mo):
     mo.md("""
     ## String output
 
-    Returning a string from a cell preserves escape sequences like `\n` as actual
+    Returning a string from a cell preserves escape sequences like `
+    ` as actual
     newlines in the exported markdown.
     """)
     return
