@@ -120,7 +120,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## List and dict outputs
+    ## JSON outputs
 
     Returning a dict or list from a cell produces a Python-style formatted output
     using `pprint`.
