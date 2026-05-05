@@ -5,7 +5,7 @@ from rich.console import Console
 
 from .export import export_html, export_md, strip_header_from_frontmatter
 from .inject import inject_outputs
-from .parse_html import _extract_line_length, extract_outputs
+from .parse_html import extract_outputs
 from .parse_md import collect_cells
 
 _err_console = Console(stderr=True)
@@ -56,13 +56,6 @@ def main(
         help="Maximum seconds to wait for each marimo export subprocess "
         "(default: no timeout).",
     ),
-    line_width: int | None = typer.Option(
-        None,
-        "--line-width",
-        min=40,
-        help="Maximum line width for wrapping output text. "
-        "If not provided, inferred from marimo's formatting.line_length config.",
-    ),
 ) -> None:
     """Export a marimo notebook to markdown with rendered outputs injected.
 
@@ -102,9 +95,7 @@ def main(
         if verbose:
             typer.echo(f"Wrote {html_output}")
 
-    if line_width is None:
-        line_width = _extract_line_length(html)
-    outputs = extract_outputs(html, line_width)
+    outputs = extract_outputs(html)
     result, warnings = inject_outputs(md, cells, outputs)
 
     for warning in warnings:

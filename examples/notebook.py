@@ -250,5 +250,46 @@ def _(np, x):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Long line outputs
+
+    These cells produce outputs with very long single lines to test line wrapping.
+    """)
+    return
+
+
+@app.cell
+def _():
+    from collections import OrderedDict
+
+    d = OrderedDict(
+        [
+            ("very_long_key_name_number_one", "value_one"),
+            ("very_long_key_name_number_two", "value_two"),
+            ("very_long_key_name_number_three", "value_three"),
+            ("very_long_key_name_number_four", "value_four"),
+            ("very_long_key_name_number_five", "value_five"),
+        ]
+    )
+    print(d)
+    d.keys()
+    return
+
+
+@app.cell
+def _():
+    import warnings
+
+    warnings.warn(
+        "This is a very long warning message that spans well beyond the typical "
+        "line length limit of 79 characters and should be wrapped properly when "
+        "exported to markdown with the --line-width option configured"
+    )
+    "warning demo"
+    return
+
+
 if __name__ == "__main__":
     app.run()
