@@ -277,8 +277,9 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 try:
                     content = ast.literal_eval(content)
                 except (ValueError, SyntaxError):
-                    pass
-                return "text", f"<pre>{escape(content)}</pre>"
+                    content = None
+                if content is not None:
+                    return "text", f"<pre>{escape(content)}</pre>"
         if "<marimo-table" in decoded:
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html
