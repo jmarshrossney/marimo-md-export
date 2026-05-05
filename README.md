@@ -30,9 +30,8 @@ uvx marimo-md-export notebook.py output.md
 
 ## Integrating with documentation sites
 
-`marimo-md-export` is designed to produce markdown pages for static site generators like
-[mkdocs](https://www.mkdocs.org/) (Python) or
-[zensical](https://zensical.org/) (Rust). Both work identically for this purpose.
+`marimo-md-export` is designed to produce markdown pages for static site generators like [mkdocs](https://www.mkdocs.org/) or [zensical](https://zensical.org/).
+Both work identically for this purpose.
 
 **1. Add as a docs dependency:**
 
@@ -50,8 +49,7 @@ docs:
   zensical build
 ```
 
-This runs `marimo-md-export` to produce a self-contained markdown page (with cell
-outputs injected), then builds the site.
+This runs `marimo-md-export` to produce a self-contained markdown page (with cell outputs injected), then builds the site.
 
 ## Development
 
