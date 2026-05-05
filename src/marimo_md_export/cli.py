@@ -56,6 +56,13 @@ def main(
         help="Maximum seconds to wait for each marimo export subprocess "
         "(default: no timeout).",
     ),
+    line_width: int | None = typer.Option(
+        None,
+        "--line-width",
+        min=40,
+        help="Maximum line width for wrapping output text. "
+        "If not provided, inferred from marimo's formatting.line_length config.",
+    ),
 ) -> None:
     """Export a marimo notebook to markdown with rendered outputs injected.
 
@@ -95,7 +102,8 @@ def main(
         if verbose:
             typer.echo(f"Wrote {html_output}")
 
-    line_width = _extract_line_length(html)
+    if line_width is None:
+        line_width = _extract_line_length(html)
     outputs = extract_outputs(html, line_width)
     result, warnings = inject_outputs(md, cells, outputs)
 

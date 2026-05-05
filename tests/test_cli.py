@@ -116,3 +116,38 @@ def test_html_output_verbose(tmp_path):
                         ],
                     )
     assert "Wrote" in result.output
+
+
+def test_line_width_override(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            with patch(
+                "marimo_md_export.cli.extract_outputs", return_value={}
+            ) as mock_extract:
+                with patch(
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(md, []),
+                ):
+                    runner.invoke(
+                        app,
+                        [str(notebook), str(output), "--line-width", "80"],
+                    )
+    mock_extract.assert_called_once()
+    call_args = mock_extract.call_args
+    assert call_args[1].get("line_width") == 80 or call_args[0][1] == 80
+
+
+def test_line_width_rejects_too_small(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    result = runner.invoke(
+        app,
+        [str(notebook), str(output), "--line-width", "30"],
+    )
+    assert result.exit_code != 0
+    assert "40" in result.output or "40" in result.stderr
