@@ -182,8 +182,6 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Standard error
-
     Output written to `sys.stderr` is captured separately from stdout.
     """)
     return
@@ -192,7 +190,6 @@ def _(mo):
 @app.cell
 def _(sys, x):
     sys.stderr.write(f"Warning: computing over {len(x)} points\n")
-    "stderr demo"
     return
 
 
@@ -235,7 +232,47 @@ def _(np, x):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Suppressed output
+    ## Long line outputs
+
+    This cell produces output with very long lines to demonstrate overflow wrapping.
+    """)
+    return
+
+
+@app.cell
+def _():
+    print(
+        "A very long line that exceeds the typical container width, stretching well beyond what fits on a single line. In this case the text should scroll, not wrap! "
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    You can pass `--overflow scroll` to the CLI to switch the global behaviour from wrapping to scrolling.
+    Note, however, that JSON outputs (lists, dicts, tuples) won't be affected by this.
+
+    You can also control overflow on a per-cell basis.
+
+    Add `# @scroll` to a cell to force horizontal scrolling for its output, regardless of the global `--overflow` setting.
+    """)
+    return
+
+
+@app.cell
+def _():
+    # @scroll
+    print(
+        "A very long line that exceeds the typical container width, stretching well beyond what fits on a single line. In this case the text should scroll, not wrap! "
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Suppressing outputs
 
     Adding `# @suppress` to a cell prevents its output from appearing in the exported markdown.
     """)
@@ -243,31 +280,9 @@ def _(mo):
 
 
 @app.cell
-def _(np, x):
-    # @suppress
-    intermediate = np.sum(x)
-    intermediate
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
-    ## Long line outputs
-
-    This cell produces output with very long lines to demonstrate overflow wrapping.
-
-    Note that it doesn't automatically look good, but it is wrapped.
-    """)
-    return
-
-
-@app.cell
 def _():
-    {
-        "a_very_long_key_name_that_exceeds_the_typical_container_width": "an equally long value that stretches well beyond what fits on a single line in most markdown viewers",
-        "another_extremely_descriptive_key_for_demonstration_purposes": "this value is also quite long and will wrap or scroll depending on the --overflow setting",
-    }
+    # @suppress
+    print("This is just for debugging - no need to include in the docs!")
     return
 
 

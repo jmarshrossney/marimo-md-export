@@ -224,10 +224,7 @@ def test_console_stdout_extracted():
     results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">hello\n</pre>'
-        == out.console_html
-    )
+    assert "<pre>hello\n</pre>" == out.console_html
     assert out.raw_html == ""
 
 
@@ -244,10 +241,7 @@ def test_console_and_cell_output_combined():
     html = _make_html([cell])
     results = extract_outputs(html)
     out = results[_md5(code.strip())]
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">hi\n</pre>'
-        == out.console_html
-    )
+    assert "<pre>hi\n</pre>" == out.console_html
     assert out.output_type == "figure"
     assert _PNG_DATA in out.raw_html
 
@@ -316,10 +310,7 @@ def test_stream_media_with_stdout():
     html = _make_html([cell])
     results = extract_outputs(html)
     out = results[_md5(code.strip())]
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">hi\n</pre>'
-        == out.console_html
-    )
+    assert "<pre>hi\n</pre>" == out.console_html
     assert "<img" in out.media_html
 
 
@@ -390,10 +381,7 @@ def test_csv_output():
     out = results[_md5(code.strip())]
     assert out.output_type == "csv"
     assert "Alice,30" in out.raw_html
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;"><code>'
-        in out.raw_html
-    )
+    assert "<pre><code>" in out.raw_html
 
 
 def test_table_data_json_decode_error():
@@ -588,10 +576,7 @@ def test_json_dict_extraction():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "json"
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">'
-        in out.raw_html
-    )
+    assert "<pre>" in out.raw_html
     assert "<code>" not in out.raw_html
     assert "name" in out.raw_html
     assert "Alice" in out.raw_html
@@ -604,10 +589,7 @@ def test_json_list_extraction():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "json"
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">'
-        in out.raw_html
-    )
+    assert "<pre>" in out.raw_html
     assert "<code>" not in out.raw_html
     assert "1" in out.raw_html
 
@@ -675,10 +657,7 @@ def test_json_combined_with_console():
     html = _make_html([cell])
     results = extract_outputs(html)
     out = results[_md5(code.strip())]
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">hi\n</pre>'
-        == out.console_html
-    )
+    assert "<pre>hi\n</pre>" == out.console_html
     assert out.output_type == "json"
 
 
@@ -708,10 +687,7 @@ def test_error_output_extraction():
     assert out.output_type == "error"
     assert "ZeroDivisionError" in out.raw_html
     assert "division by zero" in out.raw_html
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">'
-        in out.raw_html
-    )
+    assert "<pre>" in out.raw_html
     assert "<strong>" not in out.raw_html
 
 
@@ -736,10 +712,7 @@ def test_error_without_traceback():
     out = results[_md5(code.strip())]
     assert out.output_type == "error"
     assert "ValueError" in out.raw_html
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">'
-        in out.raw_html
-    )
+    assert "<pre>" in out.raw_html
     assert "<strong>" not in out.raw_html
 
 
@@ -785,10 +758,7 @@ def test_error_with_console_output():
     html = _make_html([cell])
     results = extract_outputs(html)
     out = results[_md5(code.strip())]
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">before\n</pre>'
-        == out.console_html
-    )
+    assert "<pre>before\n</pre>" == out.console_html
     assert out.output_type == "error"
 
 
@@ -806,10 +776,7 @@ def test_stdout_and_stderr_both_captured():
     html = _make_html([cell])
     results = extract_outputs(html)
     out = results[_md5(code.strip())]
-    assert (
-        '<pre style="white-space: pre-wrap; overflow-wrap: break-word;">out\n</pre>'
-        == out.console_html
-    )
+    assert "<pre>out\n</pre>" == out.console_html
     assert "err" in out.stderr_html
     assert 'class="stderr"' in out.stderr_html
     assert out.raw_html == ""

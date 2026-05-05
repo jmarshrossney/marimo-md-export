@@ -81,7 +81,7 @@ Run `marimo-md-export --help` to see all available options.
 | `--marimo-args TEXT` | Extra arguments forwarded to `marimo export` (space-separated) |
 | `--sandbox`/`--no-sandbox` | Run `marimo export` in an isolated uv environment |
 | `--timeout SECONDS` | Maximum seconds to wait for each `marimo export` subprocess (default: no timeout) |
-| `--overflow` | Overflow behavior for long output lines: `wrap` (default) or `scroll` |
+| `--overflow` | Default overflow behavior for long output lines: `wrap` (default) or `scroll`. Can be overridden per cell with `# @scroll` or `# @wrap`. |
 | `-v`, `--verbose` | Print progress to stdout |
 | `-h`, `--help` | Show help and exit |
 
@@ -117,5 +117,8 @@ To ensure fully non-interactive operation, `--force` is always passed to `marimo
 By default, long output lines wrap within the container using CSS `white-space: pre-wrap; overflow-wrap: break-word;`.
 This keeps everything visible without scrolling but can break custom `__str__` formatting.
 
-Use `--overflow scroll` to switch to horizontal scrolling instead.
+Use `--overflow scroll` to switch to horizontal scrolling globally.
 This preserves the original formatting exactly but requires users to scroll horizontally for long lines.
+
+You can also override the global default on a per-cell basis by adding `# @scroll` or `# @wrap` anywhere inside the cell (similar to `# @suppress`).
+The last marker in a cell wins if both are present.

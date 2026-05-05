@@ -1,4 +1,9 @@
-from marimo_md_export.inject import inject_outputs
+from marimo_md_export.inject import (
+    _PRE_STYLE_SCROLL,
+    _PRE_STYLE_WRAP,
+    _inject_pre_style,
+    inject_outputs,
+)
 from marimo_md_export.models import ExtractedOutput
 from marimo_md_export.parse_md import collect_cells
 
@@ -190,7 +195,8 @@ def test_error_output_rendered_as_pre():
     )
     outputs = {cells[0].source_hash: error_output}
     result, warnings = _inject(md, outputs)
-    assert "<pre>ZeroDivisionError" in result
+    assert '<pre style="' in result
+    assert "ZeroDivisionError" in result
     assert '<div class="error">' not in result
 
 
@@ -207,8 +213,72 @@ def test_stderr_injected_after_stdout():
     )
     outputs = {cells[0].source_hash: output}
     result, warnings = _inject(md, outputs)
-    assert "<pre>out\n</pre>" in result
-    assert '<pre class="stderr">err\n</pre>' in result
-    assert result.index("<pre>out\n</pre>") < result.index(
-        '<pre class="stderr">err\n</pre>'
+    assert _PRE_STYLE_WRAP in result
+    assert '<pre class="stderr" style="' in result
+    assert result.index("out\n") < result.index("err\n")
+
+
+def test_default_style_is_wrap():
+    source = "x = 1"
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    output = ExtractedOutput(
+        raw_html="<pre>hello</pre>", output_type="text", cell_id="aaa"
     )
+    outputs = {cells[0].source_hash: output}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert _PRE_STYLE_WRAP in result
+
+
+def test_scroll_marker_overrides_default():
+    source = "# @scroll\nx = 1"
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    output = ExtractedOutput(
+        raw_html="<pre>hello</pre>", output_type="text", cell_id="aaa"
+    )
+    outputs = {cells[0].source_hash: output}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert _PRE_STYLE_SCROLL in result
+    assert _PRE_STYLE_WRAP not in result
+
+
+def test_wrap_marker_overrides_scroll_default():
+    source = "# @wrap\nx = 1"
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    output = ExtractedOutput(
+        raw_html="<pre>hello</pre>", output_type="text", cell_id="aaa"
+    )
+    outputs = {cells[0].source_hash: output}
+    result, _ = inject_outputs(md, cells, outputs, default_pre_style=_PRE_STYLE_SCROLL)
+    assert _PRE_STYLE_WRAP in result
+    assert _PRE_STYLE_SCROLL not in result
+
+
+def test_inject_pre_style_preserves_class():
+    html = '<pre class="stderr">text</pre>'
+    result = _inject_pre_style(html, "some-style")
+    assert '<pre class="stderr" style="some-style">' in result
+
+
+def test_inject_pre_style_multiple_pres():
+    html = "<pre>one</pre>\n<pre>two</pre>"
+    result = _inject_pre_style(html, "my-style")
+    assert result.count('style="my-style"') == 2
+
+
+def test_multiple_cells_different_overflow():
+    md = _block("# @scroll\na") + "\n\n" + _block("# @wrap\nb") + "\n\n" + _block("c")
+    cells = collect_cells(md)
+    outputs = {
+        c.source_hash: ExtractedOutput(
+            raw_html="<pre>out</pre>", output_type="text", cell_id=c.source_hash[:3]
+        )
+        for c in cells
+    }
+    result, _ = inject_outputs(md, cells, outputs, default_pre_style=_PRE_STYLE_WRAP)
+    scroll_count = result.count(_PRE_STYLE_SCROLL)
+    wrap_count = result.count(_PRE_STYLE_WRAP)
+    assert scroll_count == 1
+    assert wrap_count == 2

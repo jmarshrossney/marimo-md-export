@@ -56,3 +56,66 @@ def test_hash_stability():
 def test_empty_notebook():
     assert collect_cells("") == []
     assert collect_cells("# just a comment\n## heading") == []
+
+
+def test_scroll_marker():
+    source = "# @scroll\nx = 1"
+    md = _block(source)
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].overflow == "scroll"
+
+
+def test_wrap_marker():
+    source = "# @wrap\nx = 1"
+    md = _block(source)
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].overflow == "wrap"
+
+
+def test_no_overflow_marker():
+    source = "x = 1"
+    md = _block(source)
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].overflow is None
+
+
+def test_scroll_anywhere_in_cell():
+    source = "import os\n# @scroll\nos.getcwd()"
+    cells = collect_cells(_block(source))
+    assert len(cells) == 1
+    assert cells[0].overflow == "scroll"
+
+
+def test_wrap_anywhere_in_cell():
+    source = "import os\n# @wrap\nos.getcwd()"
+    cells = collect_cells(_block(source))
+    assert len(cells) == 1
+    assert cells[0].overflow == "wrap"
+
+
+def test_scroll_wins_over_wrap_when_both_present():
+    source = "# @wrap\n# @scroll\nx = 1"
+    md = _block(source)
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].overflow == "scroll"
+
+
+def test_wrap_wins_over_scroll_when_later():
+    source = "# @scroll\n# @wrap\nx = 1"
+    md = _block(source)
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].overflow == "wrap"
+
+
+def test_suppress_and_scroll():
+    source = "# @suppress\n# @scroll\nx = 1"
+    md = _block(source)
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].suppressed is True
+    assert cells[0].overflow == "scroll"

@@ -3,9 +3,10 @@ import re
 
 from .models import Cell
 
-# Matches fenced code blocks produced by `marimo export md`
 _BLOCK_RE = re.compile(r"(```python \{\.marimo\}\n(.*?)```)", re.DOTALL)
 _SUPPRESS_RE = re.compile(r"#\s*@suppress")
+_SCROLL_RE = re.compile(r"#\s*@scroll")
+_WRAP_RE = re.compile(r"#\s*@wrap")
 
 
 def _md5(text: str) -> str:
@@ -22,12 +23,24 @@ def collect_cells(md: str) -> list[Cell]:
 
         suppressed = _SUPPRESS_RE.search(source) is not None
 
+        overflow: str | None = None
+        last_pos = -1
+        for m in _WRAP_RE.finditer(source):
+            if m.start() > last_pos:
+                last_pos = m.start()
+                overflow = "wrap"
+        for m in _SCROLL_RE.finditer(source):
+            if m.start() > last_pos:
+                last_pos = m.start()
+                overflow = "scroll"
+
         results.append(
             Cell(
                 source=source,
                 source_hash=_md5(source.strip()),
                 block_text=block_text,
                 suppressed=suppressed,
+                overflow=overflow,
             )
         )
 

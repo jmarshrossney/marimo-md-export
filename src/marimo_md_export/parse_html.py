@@ -41,9 +41,6 @@ from bs4 import BeautifulSoup
 
 from .models import ExtractedOutput
 
-_PRE_STYLE_WRAP = "white-space: pre-wrap; overflow-wrap: break-word;"
-_PRE_STYLE_SCROLL = "white-space: pre; overflow-x: auto;"
-
 _SESSION_CELLS_RE = re.compile(
     r'"session"\s*:\s*\{"cells"\s*:\s*\[',
 )
@@ -78,7 +75,6 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     if elem is None:
         return marimo_table_html
 
-    # Variable names follow HTML data-* attribute naming (hyphenated → snake_case)
     data_data_attr = elem.get("data-data")
     if not isinstance(data_data_attr, str):
         return marimo_table_html
@@ -90,12 +86,8 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     else:
         field_types_raw = "[]"
 
-    # data-data is a JSON-quoted string containing an array of row objects.
-    # It may contain literal NaN (not valid JSON). Replace only bare NaN
-    # tokens (not inside quoted string values) to avoid clobbering strings
-    # like "NaN handling".
     try:
-        inner = json.loads(data_data)  # unwrap outer JSON string
+        inner = json.loads(data_data)
         cleaned = re.sub(r'(?<!")\bNaN\b(?!")', "null", inner)
         rows = json.loads(cleaned)
     except (json.JSONDecodeError, AttributeError):
@@ -129,7 +121,7 @@ def _html_to_plain_text(html_str: str) -> str:
     return unescape(text)
 
 
-def _format_error(output: dict, pre_style: str = _PRE_STYLE_WRAP) -> str:
+def _format_error(output: dict) -> str:
     """Format an error output as plain text in a <pre> block.
 
     Error outputs have: ename, evalue, traceback fields.
@@ -140,12 +132,11 @@ def _format_error(output: dict, pre_style: str = _PRE_STYLE_WRAP) -> str:
     traceback_lines = output.get("traceback") or []
     traceback_text = "\n".join(traceback_lines)
     if traceback_text.strip():
-        # Traceback lines may contain HTML markup from Pygments
         traceback_text = _html_to_plain_text(traceback_text)
         combined = f"{traceback_text}\n{ename}: {evalue}"
     else:
         combined = f"{ename}: {evalue}"
-    return f'<pre style="{pre_style}">{escape(combined)}</pre>'
+    return f"<pre>{escape(combined)}</pre>"
 
 
 _MARIMO_TYPE_RE = re.compile(r"^text/plain\+(\w+):(.*)$", re.DOTALL)
@@ -186,13 +177,12 @@ def _strip_marimo_type_prefixes(obj: object) -> object:
 
 
 def _classify_and_build(
-    data: dict[str, str], pre_style: str = _PRE_STYLE_WRAP
+    data: dict[str, str],
 ) -> tuple[str, str] | None:
     """
     Given the output data dict (MIME → value), return (output_type, raw_html)
     or None if there is nothing renderable.
     """
-    # Figure: marimo mimebundle — try representations in priority order
     bundle_raw = data.get("application/vnd.marimo+mimebundle")
     if bundle_raw:
         try:
@@ -212,10 +202,9 @@ def _classify_and_build(
                 if mime_key == "text/plain" and val.strip():
                     return (
                         "text",
-                        f'<pre style="{pre_style}">{escape(val)}</pre>',
+                        f"<pre>{escape(val)}</pre>",
                     )
 
-    # Standalone image MIME types
     for mime_type in (
         "image/png",
         "image/jpeg",
@@ -234,7 +223,6 @@ def _classify_and_build(
                 f'<img src="{escape(img_val, quote=True)}" alt="{escape(fmt, quote=True)}">',
             )
 
-    # JSON output (dicts, lists, tuples)
     json_val = data.get("application/json")
     if json_val:
         try:
@@ -245,15 +233,9 @@ def _classify_and_build(
             formatted = json_val
         return (
             "json",
-            f'<pre style="{pre_style}">{escape(formatted)}</pre>',
+            f"<pre>{escape(formatted)}</pre>",
         )
 
-    # LaTeX output — wrap in $$ delimiters for math rendering.
-    # NOTE: text/latex is a fallback MIME type and is not expected to appear
-    # in normal marimo usage. LaTeX in marimo is typically rendered inside
-    # mo.md() blocks, which produce text/markdown output (suppressed to avoid
-    # duplication with the markdown export). This handler exists for
-    # robustness in case a library emits standalone text/latex.
     latex_val = data.get("text/latex", "")
     if latex_val and latex_val.strip():
         content = latex_val.strip()
@@ -267,19 +249,16 @@ def _classify_and_build(
             return "latex", f"${content[1:-1]}$"
         return "latex", f"$$\n{content}\n$$"
 
-    # CSV output — render as a plain text code block
     csv_val = data.get("text/csv", "")
     if csv_val and csv_val.strip():
         return (
             "csv",
-            f'<pre style="{pre_style}"><code>{escape(csv_val)}</code></pre>',
+            f"<pre><code>{escape(csv_val)}</code></pre>",
         )
 
-    # HTML output (may be a marimo-table web component)
     html_val = data.get("text/html")
     if html_val:
         decoded = unescape(html_val)
-        # Check for <pre> tag containing a Python repr
         pre_match = re.match(r"<pre[^>]*>(.*?)</pre>", decoded, re.DOTALL)
         if pre_match:
             content = pre_match.group(1)
@@ -295,17 +274,15 @@ def _classify_and_build(
                 if isinstance(content, str):
                     return (
                         "text",
-                        f'<pre style="{pre_style}">{escape(content)}</pre>',
+                        f"<pre>{escape(content)}</pre>",
                     )
-            # Non-quoted repr (e.g. dict_keys, OrderedDict, exceptions)
             return (
                 "text",
-                f'<pre style="{pre_style}">{escape(content)}</pre>',
+                f"<pre>{escape(content)}</pre>",
             )
         if "<marimo-table" in decoded:
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html
-        # Generic HTML (e.g. styled dataframe rendered as <table>)
         if "<table" in decoded:
             return "table", decoded
         return "html", decoded
@@ -323,10 +300,9 @@ def _classify_and_build(
                 pass
         return (
             "text",
-            f'<pre style="{pre_style}">{escape(plain)}</pre>',
+            f"<pre>{escape(plain)}</pre>",
         )
 
-    # Unsupported MIME types — leave a comment for debugging
     unsupported = {
         "application/vnd.vega.v5+json",
         "application/vnd.vega.v6+json",
@@ -347,7 +323,7 @@ def _classify_and_build(
 
 
 def extract_outputs(
-    html: bytes, pre_style: str = _PRE_STYLE_WRAP
+    html: bytes,
 ) -> dict[str, ExtractedOutput]:
     """Extract rendered outputs from the marimo HTML export.
 
@@ -376,11 +352,8 @@ def extract_outputs(
             for c in cell.get("console", [])
             if c.get("name") == "stdout"
         )
-        console_html = (
-            f'<pre style="{pre_style}">{escape(stdout)}</pre>' if stdout.strip() else ""
-        )
+        console_html = f"<pre>{escape(stdout)}</pre>" if stdout.strip() else ""
 
-        # Stderr may contain Pygments-highlighted HTML; strip it to plain text
         stderr = "".join(
             c.get("text", "")
             for c in cell.get("console", [])
@@ -388,12 +361,9 @@ def extract_outputs(
         )
         stderr = _html_to_plain_text(stderr) if stderr.strip() else ""
         stderr_html = (
-            f'<pre class="stderr" style="{pre_style}">{escape(stderr)}</pre>'
-            if stderr.strip()
-            else ""
+            f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
         )
 
-        # Console media output (images printed to console)
         media_parts = []
         for c in cell.get("console", []):
             if c.get("type") != "streamMedia":
@@ -410,12 +380,12 @@ def extract_outputs(
         output_parts: list[tuple[str, str]] = []
         for output in cell.get("outputs", []):
             if output.get("type") == "error":
-                error_html = _format_error(output, pre_style)
+                error_html = _format_error(output)
                 if error_html:
                     output_parts.append(("error", error_html))
                     break
             data = output.get("data", {})
-            classified = _classify_and_build(data, pre_style)
+            classified = _classify_and_build(data)
             if classified is None:
                 continue
             output_parts.append(classified)
