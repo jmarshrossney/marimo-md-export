@@ -1,3 +1,5 @@
+import re
+
 from bs4 import BeautifulSoup
 
 from .models import Cell, ExtractedOutput
@@ -40,22 +42,37 @@ def _table_to_gfm(html: str) -> str | None:
     return "\n".join(lines)
 
 
+def _escape_brackets(text: str) -> str:
+    return text.replace("[", "&#91;").replace("]", "&#93;")
+
+
+def _escape_brackets_in_pre(html: str) -> str:
+    return re.sub(
+        r"(<pre[^>]*>)(.*?)(</pre>)",
+        lambda m: m.group(1) + _escape_brackets(m.group(2)) + m.group(3),
+        html,
+        flags=re.DOTALL,
+    )
+
+
 def _format_output(output: ExtractedOutput) -> str:
     comment = f"<!-- @output:{output.cell_id} -->"
 
     parts = []
     if output.console_html:
-        parts.append(output.console_html)
+        parts.append(_escape_brackets_in_pre(output.console_html))
     if output.stderr_html:
-        parts.append(output.stderr_html)
+        parts.append(_escape_brackets_in_pre(output.stderr_html))
     if output.media_html:
-        parts.append(output.media_html)
+        parts.append(_escape_brackets_in_pre(output.media_html))
     if output.raw_html:
         if output.output_type == "table":
             gfm = _table_to_gfm(output.raw_html)
-            parts.append(gfm if gfm is not None else output.raw_html)
+            parts.append(
+                gfm if gfm is not None else _escape_brackets_in_pre(output.raw_html)
+            )
         else:
-            parts.append(output.raw_html)
+            parts.append(_escape_brackets_in_pre(output.raw_html))
 
     return comment + "\n\n" + "\n\n".join(parts)
 

@@ -26,6 +26,8 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 4. Matches each cell to its rendered output in the HTML export by hashing the cell source.
 5. Injects each output into the markdown immediately after its code block, labelled with the cell's marimo ID.
 
+Different cell outputs are handled as follows:
+
 - Figures are embedded as base64 `<img>` tags.
 - Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
 - Console output (stdout and stderr) is captured and rendered as `<pre>` blocks.
@@ -36,18 +38,23 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 
 ## Caveats
 
-### Embedded figures produce large files.
+**Embedded figures produce large files.**
 
 Figures are stored as base64-encoded PNGs inline in the markdown.
 A notebook with many plots can produce a multi-megabyte file.
 
-To mitigate this:
+Some suggestions:
 
 - Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
 - Consider using `# @suppress` in cells whose outputs you don't need.
 
-### Some output types are not fully supported.
+**Some output types are not fully supported.**
 
 Vega charts, Jupyter widgets, and other rich outputs cannot be rendered in static markdown.
 These produce a placeholder comment (e.g. `<!-- unsupported output type: application/vnd.vega.v5+json -->`).
 Similarly, `text/markdown` outputs from `mo.md()` cells are suppressed because they are already present in the markdown export.
+
+**Dynamic markdown (i.e. f-strings in `mo.md()`) is not supported.**
+
+This would be nice to have.
+It probably means sidestepping `marimo export md` entirely and simply building a brand new markdown file based on the output of `marimo export html`.
