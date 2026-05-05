@@ -9,6 +9,7 @@ class Cell:
     source_hash: str
     block_text: str
     suppressed: bool = False
+    overflow: str | None = None
 
 
 @dataclass

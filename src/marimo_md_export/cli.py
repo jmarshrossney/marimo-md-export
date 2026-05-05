@@ -4,7 +4,11 @@ import typer
 from rich.console import Console
 
 from .export import export_html, export_md, strip_header_from_frontmatter
-from .inject import inject_outputs
+from .inject import (
+    _PRE_STYLE_SCROLL,
+    _PRE_STYLE_WRAP,
+    inject_outputs,
+)
 from .parse_html import extract_outputs
 from .parse_md import collect_cells
 
@@ -56,6 +60,12 @@ def main(
         help="Maximum seconds to wait for each marimo export subprocess "
         "(default: no timeout).",
     ),
+    overflow: str = typer.Option(
+        "wrap",
+        "--overflow",
+        help="Default overflow behavior for long output lines: 'wrap' (default) or 'scroll'. "
+        "Can be overridden per cell with # @scroll or # @wrap.",
+    ),
 ) -> None:
     """Export a marimo notebook to markdown with rendered outputs injected.
 
@@ -95,8 +105,19 @@ def main(
         if verbose:
             typer.echo(f"Wrote {html_output}")
 
+    if overflow == "scroll":
+        pre_style = _PRE_STYLE_SCROLL
+    elif overflow == "wrap":
+        pre_style = _PRE_STYLE_WRAP
+    else:
+        typer.echo(
+            f"Invalid overflow value: {overflow!r}. Must be 'wrap' or 'scroll'.",
+            err=True,
+        )
+        raise typer.Exit(2)
+
     outputs = extract_outputs(html)
-    result, warnings = inject_outputs(md, cells, outputs)
+    result, warnings = inject_outputs(md, cells, outputs, default_pre_style=pre_style)
 
     for warning in warnings:
         _err_console.print(f"WARNING: {warning}", style="bold yellow")

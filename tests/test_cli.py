@@ -116,3 +116,40 @@ def test_html_output_verbose(tmp_path):
                         ],
                     )
     assert "Wrote" in result.output
+
+
+def test_overflow_scroll(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            with patch("marimo_md_export.cli.extract_outputs", return_value={}):
+                with patch(
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(md, []),
+                ):
+                    result = runner.invoke(
+                        app,
+                        [str(notebook), str(output), "--overflow", "scroll"],
+                    )
+    assert result.exit_code == 0
+
+
+def test_overflow_invalid(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            result = runner.invoke(
+                app,
+                [str(notebook), str(output), "--overflow", "invalid"],
+            )
+    assert result.exit_code == 2
+    assert (
+        "Invalid overflow value" in result.output
+        or "Invalid overflow value" in result.stderr
+    )

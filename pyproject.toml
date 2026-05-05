@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "marimo-md-export"
-version = "0.4.3"
+version = "0.5.0"
 description = "A minimal solution for exporting marimo notebooks to markdown *with* rendered HTML outputs, designed for mkdocs/zensical sites."
 authors = [
     { name = "Joe Marsh Rossney", email = "17361029+jmarshrossney@users.noreply.github.com" }
@@ -40,6 +40,7 @@ marimo-md-export = "marimo_md_export:main"
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.6.0",
     "pyright>=1.1.409",
     "ruff>=0.15.12",
     "rust-just>=1.50.0",

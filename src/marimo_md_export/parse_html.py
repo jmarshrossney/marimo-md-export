@@ -75,7 +75,6 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     if elem is None:
         return marimo_table_html
 
-    # Variable names follow HTML data-* attribute naming (hyphenated → snake_case)
     data_data_attr = elem.get("data-data")
     if not isinstance(data_data_attr, str):
         return marimo_table_html
@@ -87,12 +86,8 @@ def _table_html_from_marimo_table(marimo_table_html: str) -> str:
     else:
         field_types_raw = "[]"
 
-    # data-data is a JSON-quoted string containing an array of row objects.
-    # It may contain literal NaN (not valid JSON). Replace only bare NaN
-    # tokens (not inside quoted string values) to avoid clobbering strings
-    # like "NaN handling".
     try:
-        inner = json.loads(data_data)  # unwrap outer JSON string
+        inner = json.loads(data_data)
         cleaned = re.sub(r'(?<!")\bNaN\b(?!")', "null", inner)
         rows = json.loads(cleaned)
     except (json.JSONDecodeError, AttributeError):
@@ -137,7 +132,6 @@ def _format_error(output: dict) -> str:
     traceback_lines = output.get("traceback") or []
     traceback_text = "\n".join(traceback_lines)
     if traceback_text.strip():
-        # Traceback lines may contain HTML markup from Pygments
         traceback_text = _html_to_plain_text(traceback_text)
         combined = f"{traceback_text}\n{ename}: {evalue}"
     else:
@@ -182,12 +176,13 @@ def _strip_marimo_type_prefixes(obj: object) -> object:
     return obj
 
 
-def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
+def _classify_and_build(
+    data: dict[str, str],
+) -> tuple[str, str] | None:
     """
     Given the output data dict (MIME → value), return (output_type, raw_html)
     or None if there is nothing renderable.
     """
-    # Figure: marimo mimebundle — try representations in priority order
     bundle_raw = data.get("application/vnd.marimo+mimebundle")
     if bundle_raw:
         try:
@@ -205,9 +200,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 if mime_key == "text/html":
                     return "html", unescape(val)
                 if mime_key == "text/plain" and val.strip():
-                    return "text", f"<pre>{escape(val)}</pre>"
+                    return (
+                        "text",
+                        f"<pre>{escape(val)}</pre>",
+                    )
 
-    # Standalone image MIME types
     for mime_type in (
         "image/png",
         "image/jpeg",
@@ -226,7 +223,6 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 f'<img src="{escape(img_val, quote=True)}" alt="{escape(fmt, quote=True)}">',
             )
 
-    # JSON output (dicts, lists, tuples)
     json_val = data.get("application/json")
     if json_val:
         try:
@@ -235,14 +231,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
             formatted = pprint.pformat(cleaned)
         except (json.JSONDecodeError, TypeError):
             formatted = json_val
-        return "json", f"<pre>{escape(formatted)}</pre>"
+        return (
+            "json",
+            f"<pre>{escape(formatted)}</pre>",
+        )
 
-    # LaTeX output — wrap in $$ delimiters for math rendering.
-    # NOTE: text/latex is a fallback MIME type and is not expected to appear
-    # in normal marimo usage. LaTeX in marimo is typically rendered inside
-    # mo.md() blocks, which produce text/markdown output (suppressed to avoid
-    # duplication with the markdown export). This handler exists for
-    # robustness in case a library emits standalone text/latex.
     latex_val = data.get("text/latex", "")
     if latex_val and latex_val.strip():
         content = latex_val.strip()
@@ -256,16 +249,16 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
             return "latex", f"${content[1:-1]}$"
         return "latex", f"$$\n{content}\n$$"
 
-    # CSV output — render as a plain text code block
     csv_val = data.get("text/csv", "")
     if csv_val and csv_val.strip():
-        return "csv", f"<pre><code>{escape(csv_val)}</code></pre>"
+        return (
+            "csv",
+            f"<pre><code>{escape(csv_val)}</code></pre>",
+        )
 
-    # HTML output (may be a marimo-table web component)
     html_val = data.get("text/html")
     if html_val:
         decoded = unescape(html_val)
-        # Check for <pre> tag containing a Python string repr
         pre_match = re.match(r"<pre[^>]*>(.*?)</pre>", decoded, re.DOTALL)
         if pre_match:
             content = pre_match.group(1)
@@ -277,13 +270,19 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 try:
                     content = ast.literal_eval(content)
                 except (ValueError, SyntaxError):
-                    content = None
-                if content is not None:
-                    return "text", f"<pre>{escape(content)}</pre>"
+                    pass
+                if isinstance(content, str):
+                    return (
+                        "text",
+                        f"<pre>{escape(content)}</pre>",
+                    )
+            return (
+                "text",
+                f"<pre>{escape(content)}</pre>",
+            )
         if "<marimo-table" in decoded:
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html
-        # Generic HTML (e.g. styled dataframe rendered as <table>)
         if "<table" in decoded:
             return "table", decoded
         return "html", decoded
@@ -299,9 +298,11 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
                 plain = ast.literal_eval(plain)
             except (ValueError, SyntaxError):
                 pass
-        return "text", f"<pre>{escape(plain)}</pre>"
+        return (
+            "text",
+            f"<pre>{escape(plain)}</pre>",
+        )
 
-    # Unsupported MIME types — leave a comment for debugging
     unsupported = {
         "application/vnd.vega.v5+json",
         "application/vnd.vega.v6+json",
@@ -321,7 +322,9 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     return None
 
 
-def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
+def extract_outputs(
+    html: bytes,
+) -> dict[str, ExtractedOutput]:
     """Extract rendered outputs from the marimo HTML export.
 
     Returns a dict mapping source_hash → ExtractedOutput for each cell
@@ -351,7 +354,6 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
         )
         console_html = f"<pre>{escape(stdout)}</pre>" if stdout.strip() else ""
 
-        # Stderr may contain Pygments-highlighted HTML; strip it to plain text
         stderr = "".join(
             c.get("text", "")
             for c in cell.get("console", [])
@@ -362,7 +364,6 @@ def extract_outputs(html: bytes) -> dict[str, ExtractedOutput]:
             f'<pre class="stderr">{escape(stderr)}</pre>' if stderr.strip() else ""
         )
 
-        # Console media output (images printed to console)
         media_parts = []
         for c in cell.get("console", []):
             if c.get("type") != "streamMedia":
