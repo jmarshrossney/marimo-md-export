@@ -265,6 +265,20 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     html_val = data.get("text/html")
     if html_val:
         decoded = unescape(html_val)
+        # Check for <pre> tag containing a Python string repr
+        pre_match = re.match(r"<pre[^>]*>(.*?)</pre>", decoded, re.DOTALL)
+        if pre_match:
+            content = pre_match.group(1)
+            if (
+                content.startswith(("'", '"'))
+                and content.endswith(("'", '"'))
+                and len(content) >= 2
+            ):
+                try:
+                    content = ast.literal_eval(content)
+                except (ValueError, SyntaxError):
+                    pass
+                return "text", f"<pre>{escape(content)}</pre>"
         if "<marimo-table" in decoded:
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html

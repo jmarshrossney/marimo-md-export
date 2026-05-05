@@ -93,6 +93,18 @@ def _json_cell(code: str, obj: object) -> dict:
     }
 
 
+def _html_cell(code: str, html_value: str) -> dict:
+    import html as html_module
+
+    escaped = html_module.escape(html_value, quote=False)
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "hhh",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+    }
+
+
 def _console_cell(code: str, stdout: str, outputs: list | None = None) -> dict:
     return {
         "code_hash": _md5(code.strip()),
@@ -156,6 +168,32 @@ def test_string_repr_not_converted_on_error():
     out = results[_md5(code.strip())]
     assert out.output_type == "text"
     # Single quote is HTML-escaped to &#x27;
+    assert "unterminated" in out.raw_html
+
+
+def test_string_via_text_html_newlines_converted():
+    code = "greeting"
+    # Marimo sends strings as text/html in a <pre> tag with literal \n
+    html_value = "<pre class='text-xs'>'Line one\\nLine two\\nLine three'</pre>"
+    html = _make_html([_html_cell(code, html_value)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "text"
+    # The \\n should be converted to actual newlines
+    assert "Line one\nLine two\nLine three" in out.raw_html
+    assert "\\n" not in out.raw_html
+
+
+def test_string_via_text_html_fallback_on_invalid():
+    code = "bad_string"
+    # Invalid string repr — should fall back to generic HTML
+    html_value = "<pre class='text-xs'>'unterminated</pre>"
+    html = _make_html([_html_cell(code, html_value)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
     assert "unterminated" in out.raw_html
 
 
