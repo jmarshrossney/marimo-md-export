@@ -310,7 +310,7 @@ def _classify_and_build(data: dict[str, str], width: int) -> tuple[str, str] | N
     html_val = data.get("text/html")
     if html_val:
         decoded = unescape(html_val)
-        # Check for <pre> tag containing a Python string repr
+        # Check for <pre> tag containing a Python repr
         pre_match = re.match(r"<pre[^>]*>(.*?)</pre>", decoded, re.DOTALL)
         if pre_match:
             content = pre_match.group(1)
@@ -322,13 +322,19 @@ def _classify_and_build(data: dict[str, str], width: int) -> tuple[str, str] | N
                 try:
                     content = ast.literal_eval(content)
                 except (ValueError, SyntaxError):
-                    content = None
-                if content is not None:
+                    pass
+                if isinstance(content, str):
                     wrapped = _wrap_lines(content, width)
                     return (
                         "text",
                         f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(wrapped)}</pre>',
                     )
+            # Non-quoted repr (e.g. dict_keys, OrderedDict, exceptions)
+            wrapped = _wrap_lines(content, width)
+            return (
+                "text",
+                f'<pre style="white-space: pre-wrap; overflow-wrap: break-word;">{escape(wrapped)}</pre>',
+            )
         if "<marimo-table" in decoded:
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html

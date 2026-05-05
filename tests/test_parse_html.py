@@ -187,13 +187,13 @@ def test_string_via_text_html_newlines_converted():
 
 def test_string_via_text_html_fallback_on_invalid():
     code = "bad_string"
-    # Invalid string repr — should fall back to generic HTML
+    # Invalid string repr — treated as text since it's inside <pre>
     html_value = "<pre class='text-xs'>'unterminated</pre>"
     html = _make_html([_html_cell(code, html_value)])
     results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
-    assert out.output_type == "html"
+    assert out.output_type == "text"
     assert "unterminated" in out.raw_html
 
 
