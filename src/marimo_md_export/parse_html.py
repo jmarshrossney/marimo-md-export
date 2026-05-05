@@ -31,7 +31,9 @@
 # Tables are stored as <marimo-table data-data='...'> web components.
 # `data-data` is a JSON-quoted string of row objects; NaN appears literally.
 
+import ast
 import json
+import pprint
 import re
 from html import escape, unescape
 
@@ -230,10 +232,10 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
         try:
             parsed = json.loads(json_val)
             cleaned = _strip_marimo_type_prefixes(parsed)
-            formatted = json.dumps(cleaned, indent=2, ensure_ascii=False)
+            formatted = pprint.pformat(cleaned)
         except (json.JSONDecodeError, TypeError):
             formatted = json_val
-        return "json", f"<pre><code>{escape(formatted)}</code></pre>"
+        return "json", f"<pre>{escape(formatted)}</pre>"
 
     # LaTeX output — wrap in $$ delimiters for math rendering.
     # NOTE: text/latex is a fallback MIME type and is not expected to appear
@@ -263,6 +265,21 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
     html_val = data.get("text/html")
     if html_val:
         decoded = unescape(html_val)
+        # Check for <pre> tag containing a Python string repr
+        pre_match = re.match(r"<pre[^>]*>(.*?)</pre>", decoded, re.DOTALL)
+        if pre_match:
+            content = pre_match.group(1)
+            if (
+                content.startswith(("'", '"'))
+                and content.endswith(("'", '"'))
+                and len(content) >= 2
+            ):
+                try:
+                    content = ast.literal_eval(content)
+                except (ValueError, SyntaxError):
+                    content = None
+                if content is not None:
+                    return "text", f"<pre>{escape(content)}</pre>"
         if "<marimo-table" in decoded:
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html
@@ -273,6 +290,15 @@ def _classify_and_build(data: dict[str, str]) -> tuple[str, str] | None:
 
     plain = data.get("text/plain", "")
     if plain and plain.strip():
+        if (
+            plain.startswith(("'", '"'))
+            and plain.endswith(("'", '"'))
+            and len(plain) >= 2
+        ):
+            try:
+                plain = ast.literal_eval(plain)
+            except (ValueError, SyntaxError):
+                pass
         return "text", f"<pre>{escape(plain)}</pre>"
 
     # Unsupported MIME types — leave a comment for debugging

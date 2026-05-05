@@ -93,6 +93,18 @@ def _json_cell(code: str, obj: object) -> dict:
     }
 
 
+def _html_cell(code: str, html_value: str) -> dict:
+    import html as html_module
+
+    escaped = html_module.escape(html_value, quote=False)
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "hhh",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+    }
+
+
 def _console_cell(code: str, stdout: str, outputs: list | None = None) -> dict:
     return {
         "code_hash": _md5(code.strip()),
@@ -132,6 +144,57 @@ def test_text_extraction():
     results = extract_outputs(html)
     assert len(results) == 1
     assert results[_md5(code.strip())].output_type == "text"
+
+
+def test_string_newlines_converted():
+    code = "greeting"
+    # text/plain value is a Python string repr with escape sequences
+    html = _make_html([_text_cell(code, "'hello\\nworld'")])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "text"
+    # The \\n should be converted to an actual newline
+    assert "hello\nworld" in out.raw_html
+    assert "\\n" not in out.raw_html
+
+
+def test_string_repr_not_converted_on_error():
+    code = "bad_string"
+    # Invalid string repr that can't be literal_eval'd — should fall back to raw
+    html = _make_html([_text_cell(code, "'unterminated")])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "text"
+    # Single quote is HTML-escaped to &#x27;
+    assert "unterminated" in out.raw_html
+
+
+def test_string_via_text_html_newlines_converted():
+    code = "greeting"
+    # Marimo sends strings as text/html in a <pre> tag with literal \n
+    html_value = "<pre class='text-xs'>'Line one\\nLine two\\nLine three'</pre>"
+    html = _make_html([_html_cell(code, html_value)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "text"
+    # The \\n should be converted to actual newlines
+    assert "Line one\nLine two\nLine three" in out.raw_html
+    assert "\\n" not in out.raw_html
+
+
+def test_string_via_text_html_fallback_on_invalid():
+    code = "bad_string"
+    # Invalid string repr — should fall back to generic HTML
+    html_value = "<pre class='text-xs'>'unterminated</pre>"
+    html = _make_html([_html_cell(code, html_value)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
+    assert "unterminated" in out.raw_html
 
 
 def test_multiple_cells():
@@ -513,8 +576,9 @@ def test_json_dict_extraction():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "json"
-    assert "<pre><code>" in out.raw_html
-    assert "&quot;name&quot;" in out.raw_html or '"name"' in out.raw_html
+    assert "<pre>" in out.raw_html
+    assert "<code>" not in out.raw_html
+    assert "name" in out.raw_html
     assert "Alice" in out.raw_html
 
 
@@ -525,6 +589,8 @@ def test_json_list_extraction():
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "json"
+    assert "<pre>" in out.raw_html
+    assert "<code>" not in out.raw_html
     assert "1" in out.raw_html
 
 
@@ -536,6 +602,7 @@ def test_json_nested_extraction():
     out = results[_md5(code.strip())]
     assert out.output_type == "json"
     assert "inner" in out.raw_html
+    assert "<code>" not in out.raw_html
 
 
 def test_json_invalid_fallback():
@@ -924,8 +991,8 @@ def test_json_type_prefix_stripping():
     rendered = out.raw_html
     assert "1.0" in rendered
     assert "42" in rendered
-    assert "true" in rendered.lower() or "True" in rendered
-    assert "null" in rendered
+    assert "True" in rendered
+    assert "None" in rendered
     assert "plain string" in rendered
     assert "text/plain+float" not in rendered
 

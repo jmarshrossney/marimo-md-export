@@ -102,9 +102,27 @@ def _(np, x):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## JSON output
+    ## String output
 
-    Returning a dict or list from a cell produces a JSON render.
+    Returning a string from a cell preserves escape sequences like `\n` as actual
+    newlines in the exported markdown.
+    """)
+    return
+
+
+@app.cell
+def _():
+    "Line one\nLine two\nLine three"
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## List and dict outputs
+
+    Returning a dict or list from a cell produces a Python-style formatted output
+    using `pprint`.
     """)
     return
 
@@ -118,6 +136,29 @@ def _():
 @app.cell
 def _(x):
     [round(float(xi), 4) for xi in x[:5]]
+    return
+
+
+@app.cell
+def _():
+    {
+        "experiment": "damped sinusoid",
+        "parameters": {
+            "amplitude": 1.0,
+            "decay_rate": 0.167,
+            "frequency": 1.0,
+        },
+        "results": {
+            "samples": 300,
+            "range": [0.0, 12.5664],
+            "statistics": {
+                "mean": 0.0,
+                "variance": 0.5,
+                "converged": True,
+            },
+        },
+        "tags": ["oscillation", "damping", "physics"],
+    }
     return
 
 
