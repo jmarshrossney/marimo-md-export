@@ -6,9 +6,8 @@
 [![CI](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/ci.yml/badge.svg)](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/ci.yml)
 [![Docs](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/docs.yml/badge.svg)](https://jmarshrossney.github.io/marimo-md-export)
 
-A `uv` tool that wraps `marimo export`, extracts rendered outputs from the HTML export,
-and injects them into the markdown export. The result is a self-contained markdown
-document with embedded figures (as base64 `<img>` tags), tables (as GFM or HTML), and other cell outputs.
+A `uv` tool that wraps `marimo export`, extracts rendered outputs from the HTML export, and injects them into the markdown export.
+The result is a self-contained markdown document with embedded figures (as base64 `<img>` tags), tables (as GFM or HTML), and other cell outputs.
 
 **[Full documentation](https://jmarshrossney.github.io/marimo-md-export)**
 
