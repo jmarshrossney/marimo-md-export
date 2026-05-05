@@ -255,39 +255,19 @@ def _(mo):
     mo.md("""
     ## Long line outputs
 
-    These cells produce outputs with very long single lines to test line wrapping.
+    This cell produces output with very long lines to demonstrate overflow wrapping.
+
+    Note that it doesn't automatically look good, but it is wrapped.
     """)
     return
 
 
 @app.cell
 def _():
-    from collections import OrderedDict
-
-    d = OrderedDict(
-        [
-            ("very_long_key_name_number_one", "value_one"),
-            ("very_long_key_name_number_two", "value_two"),
-            ("very_long_key_name_number_three", "value_three"),
-            ("very_long_key_name_number_four", "value_four"),
-            ("very_long_key_name_number_five", "value_five"),
-        ]
-    )
-    print(d)
-    d.keys()
-    return
-
-
-@app.cell
-def _():
-    import warnings
-
-    warnings.warn(
-        "This is a very long warning message that spans well beyond the typical "
-        "line length limit of 79 characters and should be wrapped properly when "
-        "exported to markdown with the --line-width option configured"
-    )
-    "warning demo"
+    {
+        "a_very_long_key_name_that_exceeds_the_typical_container_width": "an equally long value that stretches well beyond what fits on a single line in most markdown viewers",
+        "another_extremely_descriptive_key_for_demonstration_purposes": "this value is also quite long and will wrap or scroll depending on the --overflow setting",
+    }
     return
 
 
