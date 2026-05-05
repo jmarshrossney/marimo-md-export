@@ -102,9 +102,28 @@ def _(np, x):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
+    ## String output
+
+    Returning a string from a cell preserves escape sequences like `
+    ` as actual
+    newlines in the exported markdown.
+    """)
+    return
+
+
+@app.cell
+def _():
+    "Line one\nLine two\nLine three"
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
     ## JSON output
 
-    Returning a dict or list from a cell produces a JSON render.
+    Returning a dict or list from a cell produces a Python-style formatted output
+    using `pprint`.
     """)
     return
 
