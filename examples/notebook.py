@@ -15,17 +15,6 @@ app = marimo.App(app_title="Example notebook")
 
 
 @app.cell(hide_code=True)
-def _():
-    import marimo as mo
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import pandas as pd
-    import sys
-
-    return mo, np, pd, plt, sys
-
-
-@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     # Example notebook
@@ -36,6 +25,17 @@ def _(mo):
     The command used to convert it to a docs page is the `just docs` command in [`justfile`](https://github.com/jmarshrossney/marimo-md-export/justfile).
     """)
     return
+
+
+@app.cell(hide_code=True)
+def _():
+    import marimo as mo
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    import sys
+
+    return mo, np, pd, plt, sys
 
 
 @app.cell(hide_code=True)
