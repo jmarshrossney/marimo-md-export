@@ -27,7 +27,5 @@ typecheck:
 
 # Build the documentation using Zensical.
 docs:
-  marimo-md-export examples/notebook.py docs/example.md \
-    --html-output docs/example-notebook.html
+  marimo-md-export examples/notebook.py docs/example.md
   zensical build
-  # NOTE: run `python -m http.server -d site 8000` and open to see buttons

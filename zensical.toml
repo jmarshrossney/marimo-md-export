@@ -28,10 +28,6 @@ nav = [
   { "Example" = "example.md" },
 ]
 
-extra_javascript = [
-    "_static/js/marimo-button.js",
-]
-
 [project.theme]
 
 #favicon = "images/favicon.png"

@@ -51,38 +51,27 @@ Add to your `pyproject.toml`, for example under a `docs` dependency group:
 
 ## Usage
 
+### Write your notebook
+
 This tool requires marimo notebooks in `.py` format (not `.md`).[^1]
 
 [^1]: Using `.py` format as the notebook source means you can take advantage of Python tooling (linters, type checkers etc.) and `python notebook.py` just works.
 
-### Step 1: Write your notebook
+Cell outputs are rendered in the export by default.
+If a cell produces output you don't want in the export, add `# @suppress` anywhere inside the cell.
 
-Cell outputs are rendered in the export by default. No special comments are needed.
 
-```python
-x = np.linspace(0, 4 * np.pi, 300)
-fig, ax = plt.subplots()
-ax.plot(x, np.sin(x))
-fig
-```
+### Run the export
 
-### Step 2: Suppress unwanted outputs (optional)
+`marimo-md-export` is a CLI tool, built using [Typer](https://typer.tiangolo.com/).
 
-If a cell produces output you don't want in the export, add `# @suppress` anywhere inside the cell:
-
-```python
-# @suppress
-import numpy as np
-import matplotlib.pyplot as plt
-```
-
-### Step 3: Run the export
+There are two required path-like arguments: the `.py` marimo notebook and the output path.
 
 ```sh
 marimo-md-export notebook.py output.md
 ```
 
-This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to see all available options.
+Run `marimo-md-export --help` to see all available options.
 
 **Options**
 
@@ -96,6 +85,23 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 | `-h`, `--help` | Show help and exit |
 
 
+### Integrating with documentation sites
+
+`marimo-md-export` is designed to produce markdown pages for static site generators like [mkdocs](https://www.mkdocs.org/) or [zensical](https://zensical.org/).
+Both work identically for this purpose.
+
+My suggestion is to add an extra build step that converts your notebook(s) before building the site (and to gitignore the outputs).
+
+For example, this project uses the following [just](https://github.com/casey/just) command to build the docs:
+
+```just
+docs:
+  marimo-md-export examples/notebook.py docs/example.md
+  zensical build
+```
+
+This runs `marimo-md-export` to produce a self-contained markdown page (with cell
+outputs injected), then builds the site.
 
 ## Gotchas
 
