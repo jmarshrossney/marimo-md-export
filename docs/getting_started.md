@@ -28,13 +28,6 @@ uvx marimo-md-export notebook.py output.md
 
 Add to your `pyproject.toml`, for example under a `docs` dependency group:
 
-```toml
-[dependency-groups]
-docs = [
-  "marimo-md-export",
-]
-```
-
 === "uv"
 
     ```sh
@@ -45,6 +38,15 @@ docs = [
 
     ```sh
     pip install marimo-md-export
+    ```
+
+    Then manually add `marimo-md-export` to `pyproject.toml`.
+
+    ```toml
+    [dependency-groups]
+    docs = [
+      "marimo-md-export",
+    ]
     ```
 
 ## Usage
@@ -82,7 +84,7 @@ marimo-md-export notebook.py output.md
 
 This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to see all available options.
 
-#### Options
+**Options**
 
 | Flag | Description |
 |---|---|
@@ -98,5 +100,6 @@ This is a CLI tool — run `marimo-md-export -h` or `marimo-md-export --help` to
 ## Gotchas
 
 **Existing files are overwritten by default.**
+
 `marimo-md-export` invokes `marimo export` as a subprocess. 
 To ensure fully non-interactive operation, `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. 
