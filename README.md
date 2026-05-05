@@ -8,7 +8,7 @@
 
 A `uv` tool that wraps `marimo export`, extracts rendered outputs from the HTML export,
 and injects them into the markdown export. The result is a self-contained markdown
-document with embedded figures (as base64 `<img>` tags) and tables (as GFM or HTML).
+document with embedded figures (as base64 `<img>` tags), tables (as GFM or HTML), and other cell outputs.
 
 **[Full documentation](https://jmarshrossney.github.io/marimo-md-export)**
 
@@ -22,24 +22,10 @@ ax.plot(x, np.sin(x))
 fig
 ```
 
-To suppress output for a cell, add `# @suppress`:
-
-```python
-# @suppress
-ax_diag.hist(residuals, bins=50)  # diagnostic plot, not for publication
-fig_diag
-```
-
 Then run:
 
 ```sh
 uvx marimo-md-export notebook.py output.md
-```
-
-If you want the tool to be available globally you can "install" it with
-
-```sh
-uv tool install marimo-md-export
 ```
 
 ## Integrating with documentation sites
@@ -60,13 +46,12 @@ For example, this project uses the following [just](https://github.com/casey/jus
 
 ```just
 docs:
-  marimo-md-export examples/notebook.py docs/example.md \
-    --html-output docs/example-notebook.html
+  marimo-md-export examples/notebook.py docs/example.md
   zensical build
 ```
 
 This runs `marimo-md-export` to produce a self-contained markdown page (with cell
-outputs injected as figures/tables), then builds the site.
+outputs injected), then builds the site.
 
 ## Development
 
