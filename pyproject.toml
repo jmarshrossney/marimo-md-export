@@ -65,7 +65,7 @@ test = [
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
-include = ["src/"]
+include = ["src/", "tests/"]
 
 [tool.ruff]
 line-length = 88
