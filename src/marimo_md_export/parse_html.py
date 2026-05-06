@@ -139,7 +139,7 @@ def _format_error(output: dict) -> str:
     return f"<pre>{escape(combined)}</pre>"
 
 
-_MARIMO_TYPE_RE = re.compile(r"^text/plain\+(\w+):(.*)$", re.DOTALL)
+_MARIMO_TYPE_RE = re.compile(r"^text/plain(?:\+(\w+))?:(.*)$", re.DOTALL)
 
 
 def _strip_marimo_type_prefixes(obj: object) -> object:
