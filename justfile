@@ -23,7 +23,7 @@ test-cov:
 
 # Run static type checker.
 typecheck:
-  pyright src/marimo_md_export
+  pyright
 
 # Build the documentation using Zensical.
 docs:
