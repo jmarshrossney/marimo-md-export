@@ -36,6 +36,7 @@ import json
 import pprint
 import re
 from html import escape, unescape
+from urllib.parse import quote as _url_quote
 
 from bs4 import BeautifulSoup
 
@@ -196,6 +197,8 @@ def _classify_and_build(
             val = bundle.get(mime_key)
             if val:
                 if mime_key.startswith("image/"):
+                    if mime_key == "image/svg+xml" and not val.startswith("data:"):
+                        val = f"data:image/svg+xml,{_url_quote(val, safe='')}"
                     return (
                         "figure",
                         f'<img src="{escape(val, quote=True)}" alt="{escape(mime_key.split("/")[1], quote=True)}">',
@@ -220,6 +223,8 @@ def _classify_and_build(
     ):
         img_val = data.get(mime_type)
         if img_val:
+            if mime_type == "image/svg+xml" and not img_val.startswith("data:"):
+                img_val = f"data:image/svg+xml,{_url_quote(img_val, safe='')}"
             fmt = mime_type.split("/")[1]
             return (
                 "figure",
