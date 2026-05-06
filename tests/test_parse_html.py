@@ -1021,6 +1021,76 @@ def test_standalone_image_svg():
     assert "svg+xml" in out.raw_html
 
 
+def test_standalone_image_raw_svg():
+    code = "img_raw_svg"
+    svg_data = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="blue"/></svg>'
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "fff",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"image/svg+xml": svg_data}}],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    # Should be wrapped as a data URI, not HTML-escaped
+    assert "data:image/svg+xml," in out.raw_html
+    assert "&lt;svg" not in out.raw_html
+    assert 'alt="svg+xml"' in out.raw_html
+
+
+def test_mimebundle_raw_svg():
+    code = "raw_svg_bundle"
+    svg_data = (
+        '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40"/></svg>'
+    )
+    bundle = json.dumps({"image/svg+xml": svg_data})
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "aaa",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "data:image/svg+xml," in out.raw_html
+    assert "&lt;svg" not in out.raw_html
+
+
+def test_mimebundle_dict_raw_svg():
+    code = "raw_svg_dict_bundle"
+    svg_data = (
+        '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>'
+    )
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "aaa",
+        "console": [],
+        "outputs": [
+            {
+                "type": "data",
+                "data": {
+                    "application/vnd.marimo+mimebundle": {"image/svg+xml": svg_data}
+                },
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "data:image/svg+xml," in out.raw_html
+    assert "&lt;svg" not in out.raw_html
+
+
 def test_generic_html_output_type():
     code = "html_out"
     import html as html_module
