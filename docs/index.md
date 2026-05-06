@@ -58,3 +58,8 @@ Similarly, `text/markdown` outputs from `mo.md()` cells are suppressed because t
 
 This would be nice to have.
 It probably means sidestepping `marimo export md` entirely and simply building a brand new markdown file based on the output of `marimo export html`.
+
+**Some outputs just look bad.**
+
+Not everything renders nicely, sorry.
+Some things might reasonably be improved through further development of this tool, but for very complex outputs you might just consider providing a link to the full HTML version of the marimo notebook for viewing the full interactive output.
