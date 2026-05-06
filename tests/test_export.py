@@ -1,5 +1,7 @@
 import os
 import subprocess
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -26,7 +28,7 @@ def test_export_html_error_raises():
         return_value=_failed_result("something went wrong"),
     ):
         with pytest.raises(RuntimeError, match="marimo export html failed:"):
-            export_html("notebook.py")
+            export_html(Path("notebook.py"))
 
 
 def test_export_md_error_raises():
@@ -35,7 +37,7 @@ def test_export_md_error_raises():
         return_value=_failed_result("md fail"),
     ):
         with pytest.raises(RuntimeError, match="marimo export md failed:"):
-            export_md("notebook.py")
+            export_md(Path("notebook.py"))
 
 
 def test_export_html_timeout_raises():
@@ -44,7 +46,7 @@ def test_export_html_timeout_raises():
         side_effect=subprocess.TimeoutExpired(cmd="marimo", timeout=10),
     ):
         with pytest.raises(RuntimeError, match="timed out"):
-            export_html("notebook.py", timeout=10)
+            export_html(Path("notebook.py"), timeout=10)
 
 
 def test_export_md_timeout_raises():
@@ -53,7 +55,7 @@ def test_export_md_timeout_raises():
         side_effect=subprocess.TimeoutExpired(cmd="marimo", timeout=10),
     ):
         with pytest.raises(RuntimeError, match="timed out"):
-            export_md("notebook.py", timeout=10)
+            export_md(Path("notebook.py"), timeout=10)
 
 
 class TestRunWithVisibleOutput:
@@ -61,13 +63,13 @@ class TestRunWithVisibleOutput:
 
     def test_success(self):
         result = _run_with_visible_output(
-            [os.sys.executable, "-c", "pass"], env=self.env, timeout=10
+            [sys.executable, "-c", "pass"], env=self.env, timeout=10
         )
         assert result.returncode == 0
 
     def test_stderr_captured(self):
         result = _run_with_visible_output(
-            [os.sys.executable, "-c", "import sys; print('err', file=sys.stderr)"],
+            [sys.executable, "-c", "import sys; print('err', file=sys.stderr)"],
             env=self.env,
             timeout=10,
         )
@@ -76,7 +78,7 @@ class TestRunWithVisibleOutput:
 
     def test_nonzero_exit_code(self):
         result = _run_with_visible_output(
-            [os.sys.executable, "-c", "import sys; sys.exit(42)"],
+            [sys.executable, "-c", "import sys; sys.exit(42)"],
             env=self.env,
             timeout=10,
         )
@@ -85,7 +87,7 @@ class TestRunWithVisibleOutput:
     def test_timeout(self):
         with pytest.raises(subprocess.TimeoutExpired):
             _run_with_visible_output(
-                [os.sys.executable, "-c", "import time; time.sleep(60)"],
+                [sys.executable, "-c", "import time; time.sleep(60)"],
                 env=self.env,
                 timeout=1,
             )
