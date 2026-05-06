@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "marimo-md-export"
-version = "0.5.0"
+version = "0.5.1"
 description = "A minimal solution for exporting marimo notebooks to markdown *with* rendered HTML outputs, designed for mkdocs/zensical sites."
 authors = [
     { name = "Joe Marsh Rossney", email = "17361029+jmarshrossney@users.noreply.github.com" }
@@ -61,6 +61,11 @@ test = [
     "pytest-cov>=7.1.0",
     {include-group = "examples"},
 ]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+include = ["src/", "tests/"]
 
 [tool.ruff]
 line-length = 88
