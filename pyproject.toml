@@ -62,6 +62,11 @@ test = [
     {include-group = "examples"},
 ]
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+include = ["src/"]
+
 [tool.ruff]
 line-length = 88
 indent-width = 4

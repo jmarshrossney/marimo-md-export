@@ -185,10 +185,13 @@ def _classify_and_build(
     """
     bundle_raw = data.get("application/vnd.marimo+mimebundle")
     if bundle_raw:
-        try:
-            bundle = json.loads(bundle_raw)
-        except json.JSONDecodeError:
-            bundle = {}
+        if isinstance(bundle_raw, dict):
+            bundle = bundle_raw
+        else:
+            try:
+                bundle = json.loads(bundle_raw)
+            except json.JSONDecodeError:
+                bundle = {}
         for mime_key in ("image/png", "image/svg+xml", "text/html", "text/plain"):
             val = bundle.get(mime_key)
             if val:

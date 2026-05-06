@@ -33,6 +33,19 @@ def _make_html(cells: list[dict]) -> bytes:
 _PNG_DATA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 
 
+def _figure_cell_dict(code: str) -> dict:
+    """Build a figure cell where mimebundle is already a dict (new marimo format)."""
+    bundle = {"image/png": _PNG_DATA}
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "aaa",
+        "console": [],
+        "outputs": [
+            {"type": "data", "data": {"application/vnd.marimo+mimebundle": bundle}}
+        ],
+    }
+
+
 def _figure_cell(code: str) -> dict:
     bundle = json.dumps({"image/png": _PNG_DATA})
     return {
@@ -120,6 +133,16 @@ def _console_cell(code: str, stdout: str, outputs: list | None = None) -> dict:
 def test_figure_extraction():
     code = "fig"
     html = _make_html([_figure_cell(code)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert _PNG_DATA in out.raw_html
+
+
+def test_figure_extraction_dict_mimebundle():
+    code = "fig_dict"
+    html = _make_html([_figure_cell_dict(code)])
     results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
@@ -876,6 +899,76 @@ def test_mimebundle_text_fallback():
     out = results[_md5(code.strip())]
     assert out.output_type == "text"
     assert "simple text" in out.raw_html
+
+
+def test_mimebundle_dict_html_fallback():
+    code = "html_output_dict"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "bbb",
+        "console": [],
+        "outputs": [
+            {
+                "type": "data",
+                "data": {
+                    "application/vnd.marimo+mimebundle": {"text/html": "<p>Hello</p>"}
+                },
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
+    assert "<p>Hello</p>" in out.raw_html
+
+
+def test_mimebundle_dict_text_fallback():
+    code = "text_output_dict"
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "ccc",
+        "console": [],
+        "outputs": [
+            {
+                "type": "data",
+                "data": {
+                    "application/vnd.marimo+mimebundle": {"text/plain": "simple text"}
+                },
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "text"
+    assert "simple text" in out.raw_html
+
+
+def test_mimebundle_dict_svg_fallback():
+    code = "svg_fig_dict"
+    svg_data = "data:image/svg+xml,...svgcontent..."
+    cell = {
+        "code_hash": _md5(code.strip()),
+        "id": "aaa",
+        "console": [],
+        "outputs": [
+            {
+                "type": "data",
+                "data": {
+                    "application/vnd.marimo+mimebundle": {"image/svg+xml": svg_data}
+                },
+            }
+        ],
+    }
+    html = _make_html([cell])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "figure"
+    assert "image/svg+xml" in out.raw_html
 
 
 def test_standalone_image_png():
