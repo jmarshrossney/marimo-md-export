@@ -240,6 +240,38 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
+    ## Mermaid diagrams
+
+    Mermaid code fences inside `mo.md()` cells pass through to the exported
+    markdown and render on platforms with mermaid support (GitHub, MkDocs with
+    pymdownx, etc.).
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ````
+    ```mermaid
+    graph TD
+        A[Start] --> B[Process]
+        B --> C[End]
+    ```
+    ````
+
+    ```mermaid
+    graph TD
+        A[Start] --> B[Process]
+        B --> C[End]
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
     ## Multiple outputs
 
     A cell with both console output and an expression result.
