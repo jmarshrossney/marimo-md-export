@@ -66,6 +66,15 @@ def _escape_brackets_in_pre(html: str) -> str:
     )
 
 
+def _escape_brackets_in_html(html: str) -> str:
+    return re.sub(
+        r">([^<]+)<",
+        lambda m: ">" + _escape_brackets(m.group(1)) + "<",
+        html,
+        flags=re.DOTALL,
+    )
+
+
 def _format_output(output: ExtractedOutput, pre_style: str) -> str:
     comment = f"<!-- @output:{output.cell_id} -->"
 
@@ -90,6 +99,8 @@ def _format_output(output: ExtractedOutput, pre_style: str) -> str:
                     _inject_pre_style(output.raw_html, pre_style)
                 )
             )
+        elif output.output_type in ("html", "figure"):
+            parts.append(_escape_brackets_in_html(output.raw_html))
         else:
             parts.append(
                 _escape_brackets_in_pre(_inject_pre_style(output.raw_html, pre_style))
