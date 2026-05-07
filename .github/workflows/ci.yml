@@ -11,8 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v8.1.0
-        with:
-          python-version: "3.13"
+      - uses: extractions/setup-just@v4
       - run: uv sync --group dev --locked
       - run: uv run just lint-check
       - run: uv run just typecheck
