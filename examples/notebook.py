@@ -272,6 +272,46 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
+    ## Admonitions
+
+    Marimo admonitions using the `/// type | title` syntax are automatically
+    converted to MkDocs/Zensical-compatible `!!! type "title"` format during
+    export.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ```
+    /// note | Important Information
+    This is a note admonition. It supports **bold**, *italic*, and other
+    markdown formatting inside the block.
+    ///
+    ```
+
+    /// note | Important Information
+    This is a note admonition. It supports **bold**, *italic*, and other
+    markdown formatting inside the block.
+    ///
+
+    ```
+    /// tip
+    Admonitions without a title also work — the title is simply omitted.
+    ///
+    ```
+
+    /// tip
+    Admonitions without a title also work — the title is simply omitted.
+    ///
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
     ## Multiple outputs
 
     A cell with both console output and an expression result.
