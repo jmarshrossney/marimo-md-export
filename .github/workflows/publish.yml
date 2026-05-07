@@ -41,6 +41,6 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      - uses: astral-sh/setup-uv@v8.1.0
       - run: uv build
       - run: uv publish ${{ (github.event_name == 'push' || inputs.target == 'testpypi') && '--publish-url https://test.pypi.org/legacy/' || '' }}
