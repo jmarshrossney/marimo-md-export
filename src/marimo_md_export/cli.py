@@ -11,6 +11,7 @@ from .inject import (
 )
 from .parse_html import extract_outputs
 from .parse_md import collect_cells
+from .transform import convert_admonitions
 
 _err_console = Console(stderr=True)
 
@@ -85,6 +86,7 @@ def main(
         typer.echo(f"marimo export md failed:\n{exc}", err=True)
         raise typer.Exit(1)
 
+    md = convert_admonitions(md)
     cells = collect_cells(md)
 
     if verbose:

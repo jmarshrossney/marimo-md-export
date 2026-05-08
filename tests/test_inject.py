@@ -282,3 +282,44 @@ def test_multiple_cells_different_overflow():
     wrap_count = result.count(_PRE_STYLE_WRAP)
     assert scroll_count == 1
     assert wrap_count == 2
+
+
+def test_svg_html_output_escapes_brackets():
+    source = "svg_plot"
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    svg_with_brackets = (
+        '<svg xmlns="http://www.w3.org/2000/svg">'
+        "<text text-anchor=\"start\">['col_a', 'col_b']</text>"
+        "</svg>"
+    )
+    output = ExtractedOutput(
+        raw_html=svg_with_brackets, output_type="html", cell_id="aaa"
+    )
+    outputs = {cells[0].source_hash: output}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert "&#91;" in result
+    assert "&#93;" in result
+    assert "<svg" in result
+    assert 'text-anchor="start"' in result
+
+
+def test_figure_output_escapes_brackets():
+    source = "fig"
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    img_with_figcaption = (
+        "<figure>"
+        '<img src="data:image/png;base64,abc" alt="plot">'
+        "<figcaption>Results: [accuracy, loss]</figcaption>"
+        "</figure>"
+    )
+    output = ExtractedOutput(
+        raw_html=img_with_figcaption, output_type="figure", cell_id="aaa"
+    )
+    outputs = {cells[0].source_hash: output}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert "&#91;" in result
+    assert "&#93;" in result
+    assert "<figcaption>Results: " in result
+    assert '<img src="data:image/png;base64,abc"' in result

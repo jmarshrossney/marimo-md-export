@@ -10,9 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: extractions/setup-just@v4
       - uses: astral-sh/setup-uv@v8.1.0
-        with:
-          python-version: "3.13"
       - run: uv sync --group dev --locked
       - run: uv run just lint-check
       - run: uv run just typecheck
@@ -24,6 +23,7 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v6
+      - uses: extractions/setup-just@v4
       - uses: astral-sh/setup-uv@v8.1.0
         with:
           python-version: ${{ matrix.python-version }}

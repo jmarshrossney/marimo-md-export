@@ -5,6 +5,7 @@
 #     "matplotlib==3.10.9",
 #     "numpy==2.4.4",
 #     "pandas==3.0.2",
+#     "graphviz",
 # ]
 # ///
 
@@ -209,6 +210,102 @@ def _(mo):
     <rect x="5" y="5" width="190" height="90" fill="#4a9eff" rx="10"/>
     <text x="100" y="55" text-anchor="middle" fill="white" font-size="14">SVG Image</text>
     </svg>""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Graphviz graphs
+
+    Graphs created with the `graphviz` package render as SVG and display
+    correctly in the exported markdown.
+    """)
+    return
+
+
+@app.cell
+def _():
+    from graphviz import Digraph
+
+    dot = Digraph()
+    dot.node("A", "Start")
+    dot.node("B", "Process")
+    dot.node("C", "End")
+    dot.edges(["AB", "BC"])
+    dot
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Mermaid diagrams
+
+    Mermaid code fences inside `mo.md()` cells pass through to the exported
+    markdown and render on platforms with mermaid support (GitHub, MkDocs with
+    pymdownx, etc.).
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ````
+    ```mermaid
+    graph TD
+        A[Start] --> B[Process]
+        B --> C[End]
+    ```
+    ````
+
+    ```mermaid
+    graph TD
+        A[Start] --> B[Process]
+        B --> C[End]
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Admonitions
+
+    Marimo admonitions using the `/// type | title` syntax are automatically
+    converted to MkDocs/Zensical-compatible `!!! type "title"` format during
+    export.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ```
+    /// note | Important Information
+    This is a note admonition. It supports **bold**, *italic*, and other
+    markdown formatting inside the block.
+    ///
+    ```
+
+    /// note | Important Information
+    This is a note admonition. It supports **bold**, *italic*, and other
+    markdown formatting inside the block.
+    ///
+
+    ```
+    /// tip
+    Admonitions without a title also work — the title is simply omitted.
+    ///
+    ```
+
+    /// tip
+    Admonitions without a title also work — the title is simply omitted.
+    ///
+    """)
     return
 
 
