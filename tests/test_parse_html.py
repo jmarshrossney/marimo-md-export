@@ -349,15 +349,15 @@ def test_unsupported_vega_type():
     assert "<!--" in out.raw_html
 
 
-def test_unsupported_markdown_type():
+def test_markdown_output():
     code = "mo_md_cell"
     cell = _data_cell(code, "text/markdown", "<span>heading</span>")
     html = _make_html([cell])
     results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
-    assert out.output_type == "unsupported"
-    assert "text/markdown" in out.raw_html
+    assert out.output_type == "html"
+    assert "<span>heading</span>" in out.raw_html
 
 
 def test_latex_display_math():
