@@ -72,3 +72,6 @@ include = ["src/", "tests/"]
 line-length = 88
 indent-width = 4
 target-version = "py312"
+
+[tool.uv]
+exclude-newer = "1 week"
