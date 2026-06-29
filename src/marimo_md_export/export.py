@@ -93,6 +93,8 @@ def export_html(
         ]
         if sandbox:
             cmd.append("--sandbox")
+        else:
+            cmd.append("--no-sandbox")
         if extra_args:
             cmd.append("--")
             cmd.extend(extra_args)
@@ -128,6 +130,8 @@ def export_md(
         cmd = ["marimo", "export", "md", str(notebook), "-o", str(tmp), "--force"]
         if sandbox:
             cmd.append("--sandbox")
+        else:
+            cmd.append("--no-sandbox")
         env = os.environ.copy()
         env["MPLBACKEND"] = "Agg"
         if sandbox:
