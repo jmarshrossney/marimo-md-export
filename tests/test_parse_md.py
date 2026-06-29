@@ -7,8 +7,9 @@ def _md5(s: str) -> str:
     return hashlib.md5(s.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
-def _block(source: str) -> str:
-    return f"```python {{.marimo}}\n{source}\n```"
+def _block(source: str, name: str | None = None) -> str:
+    attrs = f' name="{name}"' if name else ""
+    return f"```python {{.marimo{attrs}}}\n{source}\n```"
 
 
 def test_all_blocks_collected():
@@ -119,3 +120,21 @@ def test_suppress_and_scroll():
     assert len(cells) == 1
     assert cells[0].suppressed is True
     assert cells[0].overflow == "scroll"
+
+
+def test_named_cells_are_collected():
+    blocks = [
+        ("x = 1", None),
+        ("y = 2", "my_cell"),
+        ("z = 3", None),
+    ]
+    md = "\n\n".join(_block(src, name=name) for src, name in blocks)
+    cells = collect_cells(md)
+    assert len(cells) == 3
+    assert [c.source for c in cells] == [src + "\n" for src, _ in blocks]
+
+
+def test_all_cells_named():
+    md = "\n\n".join(_block("x = 1", name=f"cell_{i}") for i in range(5))
+    cells = collect_cells(md)
+    assert len(cells) == 5

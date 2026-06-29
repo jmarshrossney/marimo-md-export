@@ -3,7 +3,7 @@ import re
 
 from .models import Cell
 
-_BLOCK_RE = re.compile(r"(```python \{\.marimo\}\n(.*?)```)", re.DOTALL)
+_BLOCK_RE = re.compile(r"(```python \{\.marimo[^}]*\}\n(.*?)```)", re.DOTALL)
 _SUPPRESS_RE = re.compile(r"#\s*@suppress")
 _SCROLL_RE = re.compile(r"#\s*@scroll")
 _WRAP_RE = re.compile(r"#\s*@wrap")
