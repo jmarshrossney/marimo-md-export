@@ -11,7 +11,7 @@
 
 import marimo
 
-__generated_with = "0.23.3"
+__generated_with = "0.23.5"
 app = marimo.App(app_title="Example notebook")
 
 
