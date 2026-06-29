@@ -153,3 +153,29 @@ def test_overflow_invalid(tmp_path):
         "Invalid overflow value" in result.output
         or "Invalid overflow value" in result.stderr
     )
+
+
+def test_no_manage_script_metadata(tmp_path):
+    notebook = tmp_path / "test_bad_dep.py"
+    notebook.write_text(
+        "# /// script\n"
+        '# requires-python = ">=3.12"\n'
+        '# dependencies = ["this-package-does-not-exist==99.0.0", "marimo"]\n'
+        "# ///\n"
+        "\n"
+        "import marimo\n"
+        "\n"
+        "app = marimo.App()\n"
+        "\n"
+        "\n"
+        "@app.cell\n"
+        "def __():\n"
+        '    print("hello")\n'
+        "    return\n"
+    )
+    output = tmp_path / "output.md"
+
+    result = runner.invoke(app, [str(notebook), str(output)])
+    assert result.exit_code == 0, result.output
+    assert "No solution found" not in result.stderr
+    assert "hello" in output.read_text()

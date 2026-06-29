@@ -93,12 +93,13 @@ def export_html(
         ]
         if sandbox:
             cmd.append("--sandbox")
+        else:
+            cmd.append("--no-sandbox")
         if extra_args:
             cmd.append("--")
             cmd.extend(extra_args)
         env = os.environ.copy()
         env["MPLBACKEND"] = "Agg"
-        env["MARIMO_MANAGE_SCRIPT_METADATA"] = "true"
         try:
             result = _run_with_visible_output(cmd, env=env, timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -127,9 +128,10 @@ def export_md(
         cmd = ["marimo", "export", "md", str(notebook), "-o", str(tmp), "--force"]
         if sandbox:
             cmd.append("--sandbox")
+        else:
+            cmd.append("--no-sandbox")
         env = os.environ.copy()
         env["MPLBACKEND"] = "Agg"
-        env["MARIMO_MANAGE_SCRIPT_METADATA"] = "true"
         try:
             result = _run_with_visible_output(cmd, env=env, timeout=timeout)
         except subprocess.TimeoutExpired:

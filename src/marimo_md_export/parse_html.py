@@ -24,7 +24,7 @@
 #   text/latex                          — LaTeX math (wrapped in $$ delimiters)
 #   text/csv                            — CSV data (rendered as code block)
 #   text/html                           — may contain <marimo-table> web component
-#   text/markdown                       — rendered markdown (placeholder comment; already in MD export)
+#   text/markdown                       — rendered markdown (text/html output from mo.md)
 #   text/plain                          — plain text
 #   Unsupported types (vega, jupyter widgets, etc.) produce a placeholder comment.
 #
@@ -311,13 +311,16 @@ def _classify_and_build(
             f"<pre>{escape(plain)}</pre>",
         )
 
+    md_val = data.get("text/markdown")
+    if md_val:
+        return "html", unescape(md_val)
+
     unsupported = {
         "application/vnd.vega.v5+json",
         "application/vnd.vega.v6+json",
         "application/vnd.vegalite.v5+json",
         "application/vnd.vegalite.v6+json",
         "application/vnd.jupyter.widget-view+json",
-        "text/markdown",
         "text/password",
     }
     for mime_type in unsupported:
