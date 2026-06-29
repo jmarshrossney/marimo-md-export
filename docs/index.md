@@ -52,12 +52,6 @@ Some suggestions:
 
 Vega charts, Jupyter widgets, and other rich outputs cannot be rendered in static markdown.
 These produce a placeholder comment (e.g. `<!-- unsupported output type: application/vnd.vega.v5+json -->`).
-Similarly, `text/markdown` outputs from `mo.md()` cells are suppressed because they are already present in the markdown export.
-
-**Dynamic markdown (i.e. f-strings in `mo.md()`) is not supported.**
-
-This would be nice to have.
-It probably means sidestepping `marimo export md` entirely and simply building a brand new markdown file based on the output of `marimo export html`.
 
 **Some outputs just look bad.**
 

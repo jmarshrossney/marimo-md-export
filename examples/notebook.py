@@ -121,6 +121,30 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
+    ## Dynamic markdown
+
+    `mo.md()` with f-strings embeds computed values into rendered markdown.
+    This is distinct from plain `print()` or returning a string — the output
+    is styled as markdown (bold, italics, headers) rather than preformatted
+    text.
+    """)
+    return
+
+
+@app.cell
+def _(mo, np):
+    pi_hat = 4 * np.sum(1 / (1 + ((np.arange(1, 10001) - 0.5) / 10000) ** 2)) / 10000
+    mo.md(
+        f"Estimate: **{pi_hat:.10f}**  \n"
+        f"True π:   **{np.pi:.10f}**  \n"
+        f"Error:    {abs(pi_hat - np.pi):.2e}"
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
     ## JSON outputs
 
     Returning a dict or list from a cell produces a Python-style formatted output
