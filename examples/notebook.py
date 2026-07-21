@@ -144,6 +144,51 @@ def _(mo, np):
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md(r"""
+    /// note | LaTeX math in f-strings
+    With f-string interpolation, inline math is exported as `<marimo-tex>`
+    with `||(` and `||)` delimiters instead of `$...$`. Register these in
+    your KaTeX or MathJax configuration:
+
+    === "KaTeX"
+
+        ```js
+        renderMathInElement(body, {
+          delimiters: [
+            { left: "$$",  right: "$$",  display: true },
+            { left: "$",   right: "$",   display: false },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "||(", right: "||)", display: false },   // <-- new
+          ],
+        })
+        ```
+
+    === "MathJax"
+
+        ```js
+        window.MathJax = {
+          tex: {
+            inlineMath: [["\\(", "\\)"], ["||(", "||)"]],   // <-- new
+            displayMath: [["\\[", "\\]"]],
+            processEscapes: true,
+            processEnvironments: true
+          },
+          options: {
+            ignoreHtmlClass: ".*|",
+            processHtmlClass: "arithmatex"
+          }
+        };
+        ```
+
+    See the [Zensical docs](https://zensical.org/docs/authoring/math/) for further guidance.
+    ///
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md("""
     ## JSON outputs
 
@@ -307,6 +352,9 @@ def _(mo):
 
 @app.cell
 def _(mo):
+    # NOTE: The adminitions enclosed in backticks are supposed to show what the source looks
+    # like to the user, but they are also converted to Zensical !!! syntax in the rendered
+    # docs - quite confusing.
     mo.md("""
     ```
     /// note | Important Information
