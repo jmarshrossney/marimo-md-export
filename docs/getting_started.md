@@ -26,12 +26,12 @@ uvx marimo-md-export notebook.py output.md
 
 ### As a project dependency
 
-Add to your `pyproject.toml`, for example under a `docs` dependency group:
+Install and add to your `pyproject.toml`:
 
 === "uv"
 
     ```sh
-    uv add --group docs marimo-md-export
+    uv add marimo-md-export
     ```
 
 === "pip"
@@ -41,13 +41,6 @@ Add to your `pyproject.toml`, for example under a `docs` dependency group:
     ```
 
     Then manually add `marimo-md-export` to `pyproject.toml`.
-
-    ```toml
-    [dependency-groups]
-    docs = [
-      "marimo-md-export",
-    ]
-    ```
 
 ## Usage
 

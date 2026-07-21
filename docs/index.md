@@ -36,6 +36,8 @@ Different cell outputs are handled as follows:
 - SVG graphics and other HTML outputs are passed through as-is.
 - Unsupported output types (vega, jupyter widgets, etc.) produce placeholder comments.
 
+The [example page](example.md) shows how these look in practice.
+
 ## Caveats
 
 **Embedded figures produce large files.**
