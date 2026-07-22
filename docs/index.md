@@ -22,7 +22,7 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 
 1. Runs `marimo export md` to produce a markdown representation of the notebook (_without_ rendered outputs!), with cell sources in fenced ` ```python {.marimo}` blocks.
 2. Runs `marimo export html` to produce the fully-rendered HTML (with executed outputs).
-3. Collects all fenced code blocks from the markdown export (skipping cells with `# @suppress`).
+3. Collects all fenced code blocks from the markdown export.
 4. Matches each cell to its rendered output in the HTML export by hashing the cell source.
 5. Injects each output into the markdown immediately after its code block, labelled with the cell's marimo ID.
 
@@ -35,6 +35,7 @@ Different cell outputs are handled as follows:
 - Error outputs are rendered as plain-text `<pre>` blocks with the traceback and exception message.
 - SVG graphics and other HTML outputs are passed through as-is.
 - Unsupported output types (vega, jupyter widgets, etc.) produce placeholder comments.
+- The outputs of any cells marked with `# @suppress` are ignored (but the cell itself still appears).
 
 The [example page](example.md) shows how these look in practice.
 

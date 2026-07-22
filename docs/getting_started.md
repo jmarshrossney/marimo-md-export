@@ -52,6 +52,8 @@ This tool requires marimo notebooks in `.py` format (not `.md`).[^1]
 
 Cell outputs are rendered in the export by default.
 If a cell produces output you don't want in the export, add `# @suppress` anywhere inside the cell.
+The cell's code block still appears in the markdown — only its rendered output is omitted.
+There is currently no way to hide a cell's code.
 
 
 ### Run the export

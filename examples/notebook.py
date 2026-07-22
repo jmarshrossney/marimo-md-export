@@ -443,7 +443,7 @@ def _(mo):
     mo.md("""
     ## Suppressing outputs
 
-    Adding `# @suppress` to a cell prevents its output from appearing in the exported markdown.
+    Adding `# @suppress` to a cell prevents its **output** from appearing in the exported markdown. The cell itself will still appear.
     """)
     return
 
