@@ -7,6 +7,10 @@ _BLOCK_RE = re.compile(r"(```python \{\.marimo[^}]*\}\n(.*?)```)", re.DOTALL)
 _SUPPRESS_RE = re.compile(r"#\s*@suppress")
 _SCROLL_RE = re.compile(r"#\s*@scroll")
 _WRAP_RE = re.compile(r"#\s*@wrap")
+# The literal `hide_code="true"` is pinned to marimo's current export format
+# (observed on 0.23.x). A future bare or differently-quoted attribute would
+# silently no-op this detection.
+_HIDE_CODE_RE = re.compile(r'hide_code="true"')
 
 
 def _md5(text: str) -> str:
@@ -22,6 +26,11 @@ def collect_cells(md: str) -> list[Cell]:
         source = block_match.group(2)
 
         suppressed = _SUPPRESS_RE.search(source) is not None
+
+        # Only inspect the fence header line, not the whole block: a cell whose
+        # source contains the literal string would otherwise be a false positive.
+        fence_line = block_text.split("\n", 1)[0]
+        hide_code = _HIDE_CODE_RE.search(fence_line) is not None
 
         overflow: str | None = None
         last_pos = -1
@@ -40,6 +49,7 @@ def collect_cells(md: str) -> list[Cell]:
                 source_hash=_md5(source.strip()),
                 block_text=block_text,
                 suppressed=suppressed,
+                hide_code=hide_code,
                 overflow=overflow,
             )
         )
