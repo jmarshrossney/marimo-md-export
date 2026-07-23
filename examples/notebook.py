@@ -144,6 +144,35 @@ def _(mo, np):
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md("""
+    This also works inside fenced code blocks.
+    For example,
+
+    ````python
+    mo.md(f'''
+    ```python
+    n_points = {len(x)}
+    ```
+    ''')
+    ````
+
+    becomes
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, x):
+    mo.md(f"""
+    ```python
+    n_points = {len(x)}
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md(r"""
     /// note | LaTeX math in f-strings
     With f-string interpolation, inline math is exported as `<marimo-tex>`
@@ -435,6 +464,28 @@ def _():
     print(
         "A very long line that exceeds the typical container width, stretching well beyond what fits on a single line. In this case the text should scroll, not wrap! "
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Hiding code
+
+    Marking a cell with `@app.cell(hide_code=True)` (as the marimo editor does when you hide a cell's code) omits its code block from the export while still rendering its output.
+
+    The cell below is annotated with `hide_code=True`, so only its output — a figure — appears:
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np, plt, x):
+    _fig, _ax = plt.subplots(figsize=(7, 3))
+    _ax.plot(x, np.cos(x), color="tab:green")
+    _ax.set_xlabel("x")
+    _ax.set_title(r"$\cos(x)$")
+    _fig
     return
 
 

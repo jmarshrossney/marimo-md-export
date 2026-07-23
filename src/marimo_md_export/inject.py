@@ -25,7 +25,11 @@ def _table_to_gfm(html: str) -> str | None:
     if table is None:
         return None
 
-    if table.find(attrs={"colspan": True}) or table.find(attrs={"rowspan": True}):
+    # NOTE: BeautifulSoup 4.15.0's find() overloads have a typing bug: the
+    # overload for `find(attrs=dict(...))` is missing a default for `name`,
+    # so pyright resolves to the `find(name=None, attrs=None)` overload
+    # instead. Remove `# pyright: ignore` once the stubs are fixed upstream.
+    if table.find(attrs={"colspan": True}) or table.find(attrs={"rowspan": True}):  # pyright: ignore[reportArgumentType]
         return None
 
     rows: list[list[str]] = []
@@ -131,9 +135,19 @@ def inject_outputs(
     warnings: list[str] = []
     for cell in cells:
         if cell.suppressed:
+            if cell.hide_code:
+                result = result.replace(cell.block_text, "", 1)
             continue
+
         matched = outputs.get(cell.source_hash)
         if matched is None:
+            if cell.hide_code:
+                # No output matched: the cell either genuinely produces none
+                # (e.g. an imports/assignment cell — the common case) or its
+                # hash somehow failed to match. Indistinguishable here. A
+                # hidden cell with no code and no output is nothing to show, so
+                # remove it.
+                result = result.replace(cell.block_text, "", 1)
             continue
 
         pre_style = (
@@ -144,8 +158,15 @@ def inject_outputs(
             else default_pre_style
         )
         formatted = _format_output(matched, pre_style)
-        result = result.replace(
-            cell.block_text, cell.block_text + "\n\n" + formatted, 1
-        )
+        if cell.hide_code:
+            result = result.replace(cell.block_text, formatted, 1)
+        else:
+            result = result.replace(
+                cell.block_text, cell.block_text + "\n\n" + formatted, 1
+            )
+
+    # Collapse blank-line residue left by removed blocks. Injected output is
+    # separated by exactly "\n\n", so this never merges distinct blocks.
+    result = re.sub(r"\n{3,}", "\n\n", result)
 
     return result, warnings

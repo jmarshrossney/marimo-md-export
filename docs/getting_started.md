@@ -55,10 +55,12 @@ If a cell produces output you don't want in the export, add `# @suppress` anywhe
 The cell's code block still appears in the markdown — only its rendered output is omitted.
 There is currently no way to hide a cell's code.
 
+If you mark a cell with `@app.cell(hide_code=True)` (as the marimo editor does when you hide a cell's code), its code block is omitted from the export, while its output is still rendered (unless you use `# @suppress`).
+
 
 ### Run the export
 
-`marimo-md-export` is a CLI tool, built using [Typer](https://typer.tiangolo.com/).
+`marimo-md-export` is a CLI tool (built with [Typer](https://typer.tiangolo.com/)).
 
 There are two required path-like arguments: the `.py` marimo notebook and the output path.
 
