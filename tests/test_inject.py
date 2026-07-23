@@ -144,6 +144,23 @@ def test_hide_code_with_output_drops_fence():
     assert warnings == []
 
 
+def test_hide_code_wide_fence_replaced_by_output():
+    # A cell whose source embeds a fenced code block is exported with a 4-tick
+    # outer fence (issue #23). Collection + injection must round-trip: the block
+    # is replaced by its output rather than deleted for want of a hash match.
+    source = 'mo.md(rf"""\n```python\n{code}\n```\n""")'
+    md = f'before\n\n````python {{.marimo hide_code="true"}}\n{source}\n````\n\nafter'
+    cells = collect_cells(md)
+    outputs = {cells[0].source_hash: _figure_output("aaa")}
+    result, warnings = inject_outputs(md, cells, outputs)
+    assert "````python" not in result
+    assert "<!-- @output:aaa -->" in result
+    assert '<img src="data:image/png' in result
+    assert "before" in result
+    assert "after" in result
+    assert warnings == []
+
+
 def test_hide_code_without_output_removed_silently():
     source = "import marimo as mo"
     md = "before\n\n" + _hidden_block(source) + "\n\nafter"

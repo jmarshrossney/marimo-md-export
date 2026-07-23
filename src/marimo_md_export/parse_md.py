@@ -3,7 +3,10 @@ import re
 
 from .models import Cell
 
-_BLOCK_RE = re.compile(r"(```python \{\.marimo[^}]*\}\n(.*?)```)", re.DOTALL)
+# Match a fence of 3+ backticks and require the closing fence to be the same
+# width (\1). (see #23) The closing \1 is preceded by \n to anchor it to the
+# start of a line.
+_BLOCK_RE = re.compile(r"(`{3,})python \{\.marimo[^}]*\}\n(.*?\n)\1", re.DOTALL)
 _SUPPRESS_RE = re.compile(r"#\s*@suppress")
 _SCROLL_RE = re.compile(r"#\s*@scroll")
 _WRAP_RE = re.compile(r"#\s*@wrap")
@@ -22,7 +25,7 @@ def collect_cells(md: str) -> list[Cell]:
     results: list[Cell] = []
 
     for block_match in _BLOCK_RE.finditer(md):
-        block_text = block_match.group(1)
+        block_text = block_match.group(0)
         source = block_match.group(2)
 
         suppressed = _SUPPRESS_RE.search(source) is not None
