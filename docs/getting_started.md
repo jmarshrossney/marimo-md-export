@@ -53,10 +53,12 @@ This tool requires marimo notebooks in `.py` format (not `.md`).[^1]
 Cell outputs are rendered in the export by default.
 If a cell produces output you don't want in the export, add `# @suppress` anywhere inside the cell.
 
+If you mark a cell with `@app.cell(hide_code=True)` (as the marimo editor does when you hide a cell's code), its code block is omitted from the export, while its output is still rendered (unless you use `# @suppress`).
+
 
 ### Run the export
 
-`marimo-md-export` is a CLI tool, built using [Typer](https://typer.tiangolo.com/).
+`marimo-md-export` is a CLI tool (built with [Typer](https://typer.tiangolo.com/)).
 
 There are two required path-like arguments: the `.py` marimo notebook and the output path.
 
