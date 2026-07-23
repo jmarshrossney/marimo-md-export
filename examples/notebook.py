@@ -441,6 +441,28 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
+    ## Hiding code
+
+    Marking a cell with `@app.cell(hide_code=True)` (as the marimo editor does when you hide a cell's code) omits its code block from the export while still rendering its output.
+
+    The cell below is annotated with `hide_code=True`, so only its output — a figure — appears:
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np, plt, x):
+    _fig, _ax = plt.subplots(figsize=(7, 3))
+    _ax.plot(x, np.cos(x), color="tab:green")
+    _ax.set_xlabel("x")
+    _ax.set_title(r"$\cos(x)$")
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
     ## Suppressing outputs
 
     Adding `# @suppress` to a cell prevents its output from appearing in the exported markdown.

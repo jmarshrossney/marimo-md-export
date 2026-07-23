@@ -12,6 +12,10 @@ def _block(source: str) -> str:
     return f"```python {{.marimo}}\n{source}\n```"
 
 
+def _hidden_block(source: str) -> str:
+    return f'```python {{.marimo hide_code="true"}}\n{source}\n```'
+
+
 def _md_with_block(source: str) -> str:
     return _block(source) + "\n\nsome other text"
 
@@ -125,6 +129,57 @@ def test_suppressed_cell_skipped():
     assert _block(source) in result
     assert "<!-- @output:" not in result
     assert warnings == []
+
+
+def test_hide_code_with_output_drops_fence():
+    source = "mo.md(f'answer {x}')"
+    md = _hidden_block(source) + "\n\nsome other text"
+    cells = collect_cells(md)
+    outputs = {cells[0].source_hash: _figure_output("aaa")}
+    result, warnings = inject_outputs(md, cells, outputs)
+    assert _hidden_block(source) not in result
+    assert "```python" not in result
+    assert "<!-- @output:aaa -->" in result
+    assert '<img src="data:image/png' in result
+    assert warnings == []
+
+
+def test_hide_code_without_output_removed_silently():
+    source = "import marimo as mo"
+    md = "before\n\n" + _hidden_block(source) + "\n\nafter"
+    cells = collect_cells(md)
+    result, warnings = inject_outputs(md, cells, {})
+    assert _hidden_block(source) not in result
+    assert "```python" not in result
+    assert "before" in result
+    assert "after" in result
+    assert warnings == []
+
+
+def test_hide_code_and_suppress_removed_entirely():
+    source = "# @suppress\nmo.md(f'answer {x}')"
+    md = "before\n\n" + _hidden_block(source) + "\n\nafter"
+    cells = collect_cells(md)
+    outputs = {cells[0].source_hash: _figure_output("aaa")}
+    result, warnings = inject_outputs(md, cells, outputs)
+    assert _hidden_block(source) not in result
+    assert "```python" not in result
+    assert "<!-- @output:" not in result
+    assert warnings == []
+
+
+def test_no_blank_line_residue_after_removal():
+    md = (
+        "before\n\n"
+        + _hidden_block("import marimo as mo")
+        + "\n\n"
+        + _block("x = 1")
+        + "\n\nafter"
+    )
+    cells = collect_cells(md)
+    outputs = {cells[1].source_hash: _figure_output("bbb")}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert "\n\n\n" not in result
 
 
 def test_auto_label_from_cell_id():

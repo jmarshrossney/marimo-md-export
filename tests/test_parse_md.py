@@ -122,6 +122,29 @@ def test_suppress_and_scroll():
     assert cells[0].overflow == "scroll"
 
 
+def test_hide_code_detected():
+    md = '```python {.marimo hide_code="true"}\nimport marimo as mo\n```'
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].hide_code is True
+
+
+def test_no_hide_code():
+    source = "x = 1"
+    cells = collect_cells(_block(source))
+    assert len(cells) == 1
+    assert cells[0].hide_code is False
+
+
+def test_hide_code_not_triggered_by_source():
+    # A normal cell whose source merely contains the marker string must not
+    # be treated as hidden.
+    md = "```python {.marimo}\nx = 'hide_code=\"true\"'\n```"
+    cells = collect_cells(md)
+    assert len(cells) == 1
+    assert cells[0].hide_code is False
+
+
 def test_named_cells_are_collected():
     blocks = [
         ("x = 1", None),
