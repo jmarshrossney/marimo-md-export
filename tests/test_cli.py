@@ -29,7 +29,7 @@ def test_full_pipeline(tmp_path, example_notebook):
     # backticks. The interpolated value must be rendered, not the raw
     # placeholder, and the block must not be garbled.
     interp_line = next(
-        (line for line in md.splitlines() if "n_points" in line),
+        (line for line in md.splitlines() if "n_points" in line and "300" in line),
         None,
     )
     assert interp_line is not None, "interpolated code block should be rendered"

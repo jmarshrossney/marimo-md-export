@@ -25,7 +25,11 @@ def _table_to_gfm(html: str) -> str | None:
     if table is None:
         return None
 
-    if table.find(attrs={"colspan": True}) or table.find(attrs={"rowspan": True}):
+    # NOTE: BeautifulSoup 4.15.0's find() overloads have a typing bug: the
+    # overload for `find(attrs=dict(...))` is missing a default for `name`,
+    # so pyright resolves to the `find(name=None, attrs=None)` overload
+    # instead. Remove `# pyright: ignore` once the stubs are fixed upstream.
+    if table.find(attrs={"colspan": True}) or table.find(attrs={"rowspan": True}):  # pyright: ignore[reportArgumentType]
         return None
 
     rows: list[list[str]] = []
