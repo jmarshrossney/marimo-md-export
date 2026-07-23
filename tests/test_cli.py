@@ -23,6 +23,19 @@ def test_full_pipeline(tmp_path, example_notebook):
     assert "<pre" in md, "text output should be wrapped in a pre block"
 
     assert "Figures" in md
+
+    # Issue #23: an f-string mo.md() cell that interpolates a value inside a
+    # fenced code block forces marimo to widen the outer fence past three
+    # backticks. The interpolated value must be rendered, not the raw
+    # placeholder, and the block must not be garbled.
+    interp_line = next(
+        (line for line in md.splitlines() if "n_points" in line),
+        None,
+    )
+    assert interp_line is not None, "interpolated code block should be rendered"
+    assert "300" in interp_line, "interpolated value (len(x) == 300) should appear"
+    assert "{len(x)}" not in interp_line, "placeholder must be interpolated"
+
     assert "WARNING" not in result.output
 
 

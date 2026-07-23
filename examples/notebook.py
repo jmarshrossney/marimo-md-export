@@ -144,6 +144,35 @@ def _(mo, np):
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md("""
+    This also works inside fenced code blocks.
+    For example,
+
+    ````python
+    mo.md(f'''
+    ```python
+    n_points = {len(x)}
+    ```
+    ''')
+    ````
+
+    becomes
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, x):
+    mo.md(f"""
+    ```python
+    n_points = {len(x)}
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md(r"""
     /// note | LaTeX math in f-strings
     With f-string interpolation, inline math is exported as `<marimo-tex>`
