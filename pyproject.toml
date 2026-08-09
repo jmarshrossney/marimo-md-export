@@ -73,5 +73,14 @@ line-length = 88
 indent-width = 4
 target-version = "py312"
 
+[tool.ruff.lint]
+# Pinned to what ruff selected by default before 0.16 broadened it, so the
+# rule set cannot change under us on a version bump. Worth knowing before
+# widening this: the new defaults clash with generated and framework code —
+# PLR1711/B018/I001 fight the marimo cell format in examples/notebook.py
+# (B018 flags the bare-expression render idiom and has no fix), and B008
+# flags typer.Argument/Option in argument defaults.
+select = ["E4", "E7", "E9", "F"]
+
 [tool.uv]
 exclude-newer = "1 week"
