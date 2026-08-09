@@ -28,7 +28,7 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 
 Different cell outputs are handled as follows:
 
-- Figures are embedded as base64 `<img>` tags.
+- Figures are embedded as base64 `<img>` tags, or written to files and linked with `![alt](path)` if `--figures-dir` is given.
 - Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
 - Console output (stdout and stderr) is captured and rendered as `<pre>` blocks.
 - JSON values (dicts, lists) are pretty-printed in code blocks, with marimo type prefixes stripped.
@@ -43,10 +43,13 @@ The [example page](example.md) shows how these look in practice.
 
 **Embedded figures produce large files.**
 
-Figures are stored as base64-encoded PNGs inline in the markdown.
+By default, figures are stored as base64-encoded PNGs inline in the markdown.
 A notebook with many plots can produce a multi-megabyte file.
 
-Some suggestions:
+Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax.
+The markdown page then stays small, at the cost of no longer being self-contained.
+
+Some further suggestions:
 
 - Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
 - Consider using `# @suppress` in cells whose outputs you don't need.

@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 
 from .export import export_html, export_md, strip_header_from_frontmatter
+from .figures import externalize_figures
 from .inject import (
     _PRE_STYLE_SCROLL,
     _PRE_STYLE_WRAP,
@@ -42,6 +43,13 @@ def main(
         "--html-output",
         writable=True,
         help="If provided, also save the intermediate HTML export to this path",
+    ),
+    figures_dir: Path | None = typer.Option(
+        None,
+        "--figures-dir",
+        help="Write figures as image files into this directory and link to them "
+        "from the markdown, instead of embedding them as base64 data URIs. "
+        "Relative paths are resolved against the output file's directory.",
     ),
     marimo_args: str = typer.Option(
         "",
@@ -125,6 +133,13 @@ def main(
         _err_console.print(f"WARNING: {warning}", style="bold yellow")
 
     result = strip_header_from_frontmatter(result)
+
+    if figures_dir is not None:
+        result, figures, fig_warnings = externalize_figures(result, output, figures_dir)
+        for warning in fig_warnings:
+            _err_console.print(f"WARNING: {warning}", style="bold yellow")
+        if verbose:
+            typer.echo(f"Wrote {len(figures)} figure(s)")
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(result, encoding="utf-8")

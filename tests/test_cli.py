@@ -5,6 +5,8 @@ from marimo_md_export.cli import app
 
 runner = CliRunner()
 
+_PNG_DATA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
 
 def test_full_pipeline(tmp_path, example_notebook):
     notebook = example_notebook
@@ -166,6 +168,71 @@ def test_overflow_invalid(tmp_path):
         "Invalid overflow value" in result.output
         or "Invalid overflow value" in result.stderr
     )
+
+
+def test_figures_dir_writes_files(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    injected = md + '\n\n<img src="' + _PNG_DATA + '" alt="png">\n'
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            with patch("marimo_md_export.cli.extract_outputs", return_value={}):
+                with patch(
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(injected, []),
+                ):
+                    result = runner.invoke(
+                        app,
+                        [str(notebook), str(output), "--figures-dir", "figures", "-v"],
+                    )
+    assert result.exit_code == 0, result.output
+    assert "Wrote 1 figure(s)" in result.output
+
+    written = output.read_text()
+    assert "![png](figures/output-1.png)" in written
+    assert "data:image/png;base64," not in written
+    assert (tmp_path / "figures" / "output-1.png").is_file()
+
+
+def test_figures_dir_omitted_keeps_embedding(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    injected = md + '\n\n<img src="' + _PNG_DATA + '" alt="png">\n'
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            with patch("marimo_md_export.cli.extract_outputs", return_value={}):
+                with patch(
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(injected, []),
+                ):
+                    result = runner.invoke(app, [str(notebook), str(output)])
+    assert result.exit_code == 0, result.output
+    assert "data:image/png;base64," in output.read_text()
+
+
+def test_full_pipeline_with_figures_dir(tmp_path, example_notebook):
+    output = tmp_path / "output.md"
+
+    result = runner.invoke(
+        app, [str(example_notebook), str(output), "--figures-dir", "figures"]
+    )
+    assert result.exit_code == 0, result.output
+
+    md = output.read_text()
+    assert "data:image" not in md, "no figure should remain embedded"
+    assert "![png](figures/output-1.png)" in md
+
+    figures = sorted((tmp_path / "figures").iterdir())
+    assert len(figures) >= 3, f"expected several figure files, got {figures}"
+    assert {p.suffix for p in figures} <= {".png", ".svg"}
+    assert all(p.stat().st_size > 0 for p in figures)
+    assert any(p.suffix == ".svg" for p in figures), "graphviz SVG should be written"
+
+    assert "WARNING" not in result.output
 
 
 def test_no_manage_script_metadata(tmp_path):
