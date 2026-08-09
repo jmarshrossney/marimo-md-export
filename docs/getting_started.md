@@ -75,6 +75,7 @@ Run `marimo-md-export --help` to see all available options.
 | Flag | Description |
 |---|---|
 | `--html-output PATH` | If provided, also save the intermediate HTML export to this path |
+| `--figures-dir PATH` | Write figures as image files into this directory and link to them from the markdown, instead of embedding them as base64 data URIs. Relative paths are resolved against the output file's directory. |
 | `--marimo-args TEXT` | Extra arguments forwarded to `marimo export` (space-separated) |
 | `--sandbox`/`--no-sandbox` | Run `marimo export` in an isolated uv environment |
 | `--timeout SECONDS` | Maximum seconds to wait for each `marimo export` subprocess (default: no timeout) |
@@ -102,6 +103,37 @@ docs:
 This runs `marimo-md-export` to produce a self-contained markdown page (with cell
 outputs injected), then builds the site.
 
+### Writing figures to files
+
+By default, figures are embedded directly in the markdown as base64 data URIs, which keeps the page self-contained but makes it large.
+Pass `--figures-dir` to write them out as image files instead:
+
+```sh
+marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
+```
+
+This writes `docs/figures/example-1.png`, `docs/figures/example-2.svg`, and so on, and references them from the markdown with standard image syntax:
+
+```md
+![png](figures/example-1.png)
+```
+
+Files are named after the output file's stem, so several notebooks can safely share one figures directory.
+Each image keeps its native format — matplotlib plots become `.png`, graphviz graphs become `.svg`, and so on; nothing is converted.
+
+The path is interpreted relative to the directory containing the output file, so the links in the markdown are relative too and survive being served from any URL prefix.
+Because they are ordinary markdown image links, your site generator resolves them exactly as it would any other relative link in your docs.
+
+Give an absolute path if you'd rather write elsewhere; the links will then be absolute as well.
+
+This project's own docs are built this way — see the `docs` recipe in the [justfile](https://github.com/jmarshrossney/marimo-md-export/blob/main/justfile):
+
+```just
+docs:
+  marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
+  zensical build
+```
+
 ## Gotchas
 
 **Existing files are overwritten by default.**
@@ -119,3 +151,10 @@ This preserves the original formatting exactly but requires users to scroll hori
 
 You can also override the global default on a per-cell basis by adding `# @scroll` or `# @wrap` anywhere inside the cell (similar to `# @suppress`).
 The last marker in a cell wins if both are present.
+
+**Stale figure files are not cleaned up.**
+
+With `--figures-dir`, re-running the export overwrites `<stem>-1`, `<stem>-2`, ... in place, but nothing is deleted.
+If a notebook loses a figure, the leftover file from the previous run stays behind.
+
+Point `--figures-dir` at a directory used for nothing else (and gitignore it), so you can safely delete it before a rebuild.

@@ -8,6 +8,7 @@
 
 A `uv` tool that wraps `marimo export`, extracts rendered outputs from the HTML export, and injects them into the markdown export.
 The result is a self-contained markdown document with embedded figures (as base64 `<img>` tags), tables (as GFM or HTML), and other cell outputs.
+Pass `--figures-dir` to write figures out as image files and link to them with `![alt](path)` instead of embedding them.
 
 **[Full documentation](https://jmarshrossney.github.io/marimo-md-export)**
 
