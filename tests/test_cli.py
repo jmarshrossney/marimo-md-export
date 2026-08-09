@@ -1,5 +1,7 @@
-import shutil
+from pathlib import Path
+from typing import NamedTuple
 
+import pytest
 from typer.testing import CliRunner
 from unittest.mock import patch
 
@@ -216,32 +218,51 @@ def test_figures_dir_omitted_keeps_embedding(tmp_path):
     assert "data:image/png;base64," in output.read_text()
 
 
-def test_full_pipeline_with_figures_dir(tmp_path, example_notebook):
-    output = tmp_path / "output.md"
+class _FiguresExport(NamedTuple):
+    output: Path
+    figures_dir: Path
+    cli_output: str
+
+
+@pytest.fixture(scope="session")
+def figures_export(tmp_path_factory, example_notebook) -> _FiguresExport:
+    """Export the example notebook once with --figures-dir.
+
+    Session-scoped because this shells out to marimo twice; the tests below
+    only read the result.
+    """
+    directory = tmp_path_factory.mktemp("figures_export")
+    output = directory / "output.md"
 
     result = runner.invoke(
         app, [str(example_notebook), str(output), "--figures-dir", "figures"]
     )
     assert result.exit_code == 0, result.output
 
-    md = output.read_text()
+    return _FiguresExport(output, directory / "figures", result.output)
+
+
+def test_full_pipeline_with_figures_dir(figures_export):
+    md = figures_export.output.read_text()
     assert "data:image" not in md, "no figure should remain embedded"
     assert "![png](figures/output-1.png)" in md
 
-    figures = sorted((tmp_path / "figures").iterdir())
-    assert len(figures) >= 2, f"expected several figure files, got {figures}"
+    figures = sorted(figures_export.figures_dir.iterdir())
+    pngs = [p for p in figures if p.suffix == ".png"]
+    assert len(pngs) >= 2, f"expected the matplotlib PNGs, got {figures}"
     assert {p.suffix for p in figures} <= {".png", ".svg"}
     assert all(p.stat().st_size > 0 for p in figures)
 
-    # The notebook's graphviz cell renders only if the `dot` binary is present,
-    # which is an optional system dependency. Where it is, this is the one
-    # end-to-end check that non-PNG formats keep their native extension.
-    if shutil.which("dot") is not None:
-        assert any(p.suffix == ".svg" for p in figures), (
-            f"graphviz SVG should be written, got {figures}"
-        )
+    assert "WARNING" not in figures_export.cli_output
 
-    assert "WARNING" not in result.output
+
+@pytest.mark.requires_graphviz
+def test_full_pipeline_with_figures_dir_writes_svg(figures_export):
+    """The notebook's graphviz output must keep its native .svg extension."""
+    svgs = [p for p in figures_export.figures_dir.iterdir() if p.suffix == ".svg"]
+    assert len(svgs) == 1, f"expected one graphviz SVG, got {svgs}"
+    assert "<svg" in svgs[0].read_text()
+    assert f"![svg](figures/{svgs[0].name})" in figures_export.output.read_text()
 
 
 def test_no_manage_script_metadata(tmp_path):
