@@ -44,8 +44,8 @@ def _(mo):
     mo.md("""
     ## Figures
 
-    By default, figures are embedded directly in the markdown as base64 data URIs.
-    Pass `--figures-dir` to write them out as image files instead.
+    By default, figures are written to the output's assets directory as image files.
+    Pass `--self-contained` to embed them directly in the markdown as base64 data URIs.
     """)
     return
 

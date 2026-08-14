@@ -25,11 +25,19 @@ def test_full_pipeline(tmp_path, example_notebook):
     assert "```python" in md, "markdown code blocks should be present"
     assert md.count("<!-- @output:") >= 3, "at least 3 outputs should be injected"
 
-    assert "data:image/png;base64," in md, "figure should be embedded as base64 PNG"
+    assert "data:image/png;base64," not in md, "figures should not be embedded"
+    assert "![png](output_assets/figure-1.png)" in md
     assert "|" in md or "<table" in md, "table should be present as GFM or HTML"
     assert "<pre" in md, "text output should be wrapped in a pre block"
 
     assert "Figures" in md
+
+    assets = tmp_path / "output_assets"
+    assert assets.is_dir()
+    assert (assets / "notebook.html").is_file()
+    pngs = sorted(p for p in assets.iterdir() if p.suffix == ".png")
+    assert len(pngs) >= 2, f"expected matplotlib PNGs, got {list(assets.iterdir())}"
+    assert all(p.stat().st_size > 0 for p in pngs)
 
     # Issue #23: an f-string mo.md() cell that interpolates a value inside a
     # fenced code block forces marimo to widen the outer fence past three
@@ -72,11 +80,10 @@ def test_export_html_failure(tmp_path):
     assert "html failed" in result.stderr
 
 
-def test_html_output_writes_file(tmp_path):
+def test_keep_html_default_writes_notebook_html(tmp_path):
     notebook = tmp_path / "test.py"
     notebook.write_text("x = 1")
     output = tmp_path / "output.md"
-    html_output = tmp_path / "output.html"
     md = "```python {.marimo}\nfig\n```"
     with patch("marimo_md_export.cli.export_md", return_value=md):
         with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
@@ -85,12 +92,31 @@ def test_html_output_writes_file(tmp_path):
                     "marimo_md_export.cli.inject_outputs",
                     return_value=(md, []),
                 ):
-                    _ = runner.invoke(
-                        app,
-                        [str(notebook), str(output), "--html-output", str(html_output)],
+                    result = runner.invoke(app, [str(notebook), str(output)])
+    assert result.exit_code == 0, result.output
+    html_path = tmp_path / "output_assets" / "notebook.html"
+    assert html_path.is_file()
+    assert html_path.read_bytes() == b"<html></html>"
+
+
+def test_no_keep_html_discards_html(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            with patch("marimo_md_export.cli.extract_outputs", return_value={}):
+                with patch(
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(md, []),
+                ):
+                    result = runner.invoke(
+                        app, [str(notebook), str(output), "--no-keep-html"]
                     )
-    assert html_output.exists()
-    assert html_output.read_bytes() == b"<html></html>"
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "output_assets").is_dir()
+    assert not (tmp_path / "output_assets" / "notebook.html").exists()
 
 
 def test_verbose_flag(tmp_path):
@@ -110,32 +136,7 @@ def test_verbose_flag(tmp_path):
     assert "Found 1 cell(s), 0 suppressed" in result.output
     assert "Exporting HTML:" in result.output
     assert "Wrote" in result.output
-
-
-def test_html_output_verbose(tmp_path):
-    notebook = tmp_path / "test.py"
-    notebook.write_text("x = 1")
-    output = tmp_path / "output.md"
-    html_output = tmp_path / "output.html"
-    md = "```python {.marimo}\nfig\n```"
-    with patch("marimo_md_export.cli.export_md", return_value=md):
-        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
-            with patch("marimo_md_export.cli.extract_outputs", return_value={}):
-                with patch(
-                    "marimo_md_export.cli.inject_outputs",
-                    return_value=(md, []),
-                ):
-                    result = runner.invoke(
-                        app,
-                        [
-                            str(notebook),
-                            str(output),
-                            "--html-output",
-                            str(html_output),
-                            "-v",
-                        ],
-                    )
-    assert "Wrote" in result.output
+    assert "notebook.html" in result.output
 
 
 def test_overflow_scroll(tmp_path):
@@ -183,7 +184,7 @@ def test_version_flag():
     assert result.output.strip() == __version__
 
 
-def test_figures_dir_writes_files(tmp_path):
+def test_default_externalizes_figures(tmp_path):
     notebook = tmp_path / "test.py"
     notebook.write_text("x = 1")
     output = tmp_path / "output.md"
@@ -198,18 +199,19 @@ def test_figures_dir_writes_files(tmp_path):
                 ):
                     result = runner.invoke(
                         app,
-                        [str(notebook), str(output), "--figures-dir", "figures", "-v"],
+                        [str(notebook), str(output), "-v"],
                     )
     assert result.exit_code == 0, result.output
     assert "Wrote 1 figure(s)" in result.output
 
     written = output.read_text()
-    assert "![png](figures/output-1.png)" in written
+    assert "![png](output_assets/figure-1.png)" in written
     assert "data:image/png;base64," not in written
-    assert (tmp_path / "figures" / "output-1.png").is_file()
+    assert (tmp_path / "output_assets" / "figure-1.png").is_file()
+    assert (tmp_path / "output_assets" / "notebook.html").is_file()
 
 
-def test_figures_dir_omitted_keeps_embedding(tmp_path):
+def test_self_contained_keeps_embedding(tmp_path):
     notebook = tmp_path / "test.py"
     notebook.write_text("x = 1")
     output = tmp_path / "output.md"
@@ -222,56 +224,111 @@ def test_figures_dir_omitted_keeps_embedding(tmp_path):
                     "marimo_md_export.cli.inject_outputs",
                     return_value=(injected, []),
                 ):
-                    result = runner.invoke(app, [str(notebook), str(output)])
+                    result = runner.invoke(
+                        app, [str(notebook), str(output), "--self-contained"]
+                    )
     assert result.exit_code == 0, result.output
     assert "data:image/png;base64," in output.read_text()
+    assert (tmp_path / "output_assets" / "notebook.html").is_file()
+    assert not (tmp_path / "output_assets" / "figure-1.png").exists()
 
 
-class _FiguresExport(NamedTuple):
+def test_no_keep_html_self_contained_no_assets_dir(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    injected = md + '\n\n<img src="' + _PNG_DATA + '" alt="png">\n'
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            with patch("marimo_md_export.cli.extract_outputs", return_value={}):
+                with patch(
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(injected, []),
+                ):
+                    result = runner.invoke(
+                        app,
+                        [
+                            str(notebook),
+                            str(output),
+                            "--no-keep-html",
+                            "--self-contained",
+                        ],
+                    )
+    assert result.exit_code == 0, result.output
+    assert "data:image/png;base64," in output.read_text()
+    assert not (tmp_path / "output_assets").exists()
+
+
+def test_assets_dir_custom(tmp_path):
+    notebook = tmp_path / "test.py"
+    notebook.write_text("x = 1")
+    output = tmp_path / "output.md"
+    md = "```python {.marimo}\nfig\n```"
+    injected = md + '\n\n<img src="' + _PNG_DATA + '" alt="png">\n'
+    with patch("marimo_md_export.cli.export_md", return_value=md):
+        with patch("marimo_md_export.cli.export_html", return_value=b"<html></html>"):
+            with patch("marimo_md_export.cli.extract_outputs", return_value={}):
+                with patch(
+                    "marimo_md_export.cli.inject_outputs",
+                    return_value=(injected, []),
+                ):
+                    result = runner.invoke(
+                        app,
+                        [str(notebook), str(output), "--assets-dir", "custom"],
+                    )
+    assert result.exit_code == 0, result.output
+    assert "![png](custom/figure-1.png)" in output.read_text()
+    assert (tmp_path / "custom" / "figure-1.png").is_file()
+    assert (tmp_path / "custom" / "notebook.html").is_file()
+
+
+class _AssetsExport(NamedTuple):
     output: Path
-    figures_dir: Path
+    assets_dir: Path
     cli_output: str
 
 
 @pytest.fixture(scope="session")
-def figures_export(tmp_path_factory, example_notebook) -> _FiguresExport:
-    """Export the example notebook once with --figures-dir.
+def assets_export(tmp_path_factory, example_notebook) -> _AssetsExport:
+    """Export the example notebook once with default assets behaviour.
 
     Session-scoped because this shells out to marimo twice; the tests below
     only read the result.
     """
-    directory = tmp_path_factory.mktemp("figures_export")
+    directory = tmp_path_factory.mktemp("assets_export")
     output = directory / "output.md"
 
-    result = runner.invoke(
-        app, [str(example_notebook), str(output), "--figures-dir", "figures"]
-    )
+    result = runner.invoke(app, [str(example_notebook), str(output)])
     assert result.exit_code == 0, result.output
 
-    return _FiguresExport(output, directory / "figures", result.output)
+    return _AssetsExport(output, directory / "output_assets", result.output)
 
 
-def test_full_pipeline_with_figures_dir(figures_export):
-    md = figures_export.output.read_text()
+def test_full_pipeline_with_assets_dir(assets_export):
+    md = assets_export.output.read_text()
     assert "data:image" not in md, "no figure should remain embedded"
-    assert "![png](figures/output-1.png)" in md
+    assert "![png](output_assets/figure-1.png)" in md
 
-    figures = sorted(figures_export.figures_dir.iterdir())
+    figures = sorted(
+        p for p in assets_export.assets_dir.iterdir() if p.suffix in {".png", ".svg"}
+    )
     pngs = [p for p in figures if p.suffix == ".png"]
     assert len(pngs) >= 2, f"expected the matplotlib PNGs, got {figures}"
     assert {p.suffix for p in figures} <= {".png", ".svg"}
     assert all(p.stat().st_size > 0 for p in figures)
+    assert (assets_export.assets_dir / "notebook.html").is_file()
 
-    assert "WARNING" not in figures_export.cli_output
+    assert "WARNING" not in assets_export.cli_output
 
 
 @pytest.mark.requires_graphviz
-def test_full_pipeline_with_figures_dir_writes_svg(figures_export):
+def test_full_pipeline_with_assets_dir_writes_svg(assets_export):
     """The notebook's graphviz output must keep its native .svg extension."""
-    svgs = [p for p in figures_export.figures_dir.iterdir() if p.suffix == ".svg"]
+    svgs = [p for p in assets_export.assets_dir.iterdir() if p.suffix == ".svg"]
     assert len(svgs) == 1, f"expected one graphviz SVG, got {svgs}"
     assert "<svg" in svgs[0].read_text()
-    assert f"![svg](figures/{svgs[0].name})" in figures_export.output.read_text()
+    assert f"![svg](output_assets/{svgs[0].name})" in assets_export.output.read_text()
 
 
 def test_no_manage_script_metadata(tmp_path):
@@ -294,7 +351,7 @@ def test_no_manage_script_metadata(tmp_path):
     )
     output = tmp_path / "output.md"
 
-    result = runner.invoke(app, [str(notebook), str(output)])
+    result = runner.invoke(app, [str(notebook), str(output), "--no-keep-html"])
     assert result.exit_code == 0, result.output
     assert "No solution found" not in result.stderr
     assert "hello" in output.read_text()

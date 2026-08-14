@@ -84,21 +84,21 @@ def _is_own_line(md: str, start: int, end: int) -> bool:
 def externalize_figures(
     md: str,
     output: Path,
-    figures_dir: Path,
+    assets_dir: Path,
 ) -> tuple[str, list[Path], list[str]]:
     """Write inline data-URI images to disk and replace them with file links.
 
-    figures_dir is resolved relative to the output file's directory unless it
+    assets_dir is resolved relative to the output file's directory unless it
     is absolute, in which case the markdown links are absolute too.
+
+    Files are named figure-1.png, figure-2.svg, etc. (native format kept).
 
     Returns (markdown, written_paths, warnings).
     """
-    target_dir = (
-        figures_dir if figures_dir.is_absolute() else output.parent / figures_dir
-    )
-    # The markdown lives in output.parent, so a relative figures_dir is already
+    target_dir = assets_dir if assets_dir.is_absolute() else output.parent / assets_dir
+    # The markdown lives in output.parent, so a relative assets_dir is already
     # the correct link prefix; an absolute one links absolutely.
-    link_base = figures_dir.as_posix()
+    link_base = assets_dir.as_posix()
 
     written: list[Path] = []
     warnings: list[str] = []
@@ -119,7 +119,7 @@ def externalize_figures(
 
         if not written:
             target_dir.mkdir(parents=True, exist_ok=True)
-        path = target_dir / f"{output.stem}-{len(written) + 1}.{ext}"
+        path = target_dir / f"figure-{len(written) + 1}.{ext}"
         path.write_bytes(payload)
         written.append(path)
 
