@@ -49,7 +49,7 @@ A notebook with many plots can produce a multi-megabyte file.
 
 Some suggestions:
 
-- Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax. The markdown page then stays small at the cost of no longer being self-contained.
+- Pass [`--figures-dir`](cli.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax. The markdown page then stays small at the cost of no longer being self-contained.
 - Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
 - Consider using `# @suppress` in cells whose outputs you don't need.
 
@@ -61,7 +61,7 @@ These produce a placeholder comment (e.g. `<!-- unsupported output type: applica
 **Interactive elements are inert.**
 
 `mo.ui` widgets have no working form in a static page, so sliders, buttons and the like are exported as inert markup.
-See [Troubleshooting](troubleshooting.md#interactive-elements-dont-survive).
+See [Troubleshooting](troubleshooting.md#interactive-elements-dont-get-exported).
 
 **Some outputs just look bad.**
 

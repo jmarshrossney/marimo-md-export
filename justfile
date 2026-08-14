@@ -28,4 +28,5 @@ typecheck:
 # Build the documentation using Zensical.
 docs:
   marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
-  zensical build
+  # --clean or else cli changes won't trigger a rebuild
+  zensical build --clean
