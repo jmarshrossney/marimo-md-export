@@ -11,6 +11,7 @@ class Cell:
     suppressed: bool = False
     hide_code: bool = False
     overflow: str | None = None
+    is_mo_md: bool = False
 
 
 @dataclass

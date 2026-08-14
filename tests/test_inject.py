@@ -395,3 +395,77 @@ def test_figure_output_escapes_brackets():
     assert "&#93;" in result
     assert "<figcaption>Results: " in result
     assert '<img src="data:image/png;base64,abc"' in result
+
+
+def _markdown_output(cell_id: str, text: str) -> ExtractedOutput:
+    return ExtractedOutput(raw_html=text, output_type="markdown", cell_id=cell_id)
+
+
+def test_mo_md_output_injected_verbatim():
+    source = 'mo.md(f"""# Heading {x}""")'
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    outputs = {cells[0].source_hash: _markdown_output("aaa", "# Heading 42")}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert "# Heading 42" in result
+    assert "<pre" not in result
+    assert "<span" not in result
+
+
+def test_mo_md_verbatim_preserves_brackets():
+    """Links and mermaid node labels must not be bracket-escaped."""
+    source = 'mo.md(f"""see {ref}""")'
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    text = "[docs](https://example.com)\n\n```mermaid\ngraph TD\n  A[Start]\n```"
+    outputs = {cells[0].source_hash: _markdown_output("aaa", text)}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert "[docs](https://example.com)" in result
+    assert "A[Start]" in result
+    assert "&#91;" not in result
+
+
+def test_non_mo_md_markdown_output_is_escaped():
+    """A markdown-typed output from a non-mo.md cell is treated as HTML."""
+    source = "mo.ui.slider(1, 10)"
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    assert cells[0].is_mo_md is False
+    outputs = {cells[0].source_hash: _markdown_output("aaa", "<b>[x]</b>")}
+    result, _ = inject_outputs(md, cells, outputs)
+    assert "&#91;x&#93;" in result
+
+
+def test_mo_md_with_console_output_not_verbatim():
+    """stdout still needs its <pre> wrapper, so the fast path must not fire."""
+    source = 'mo.md(f"""hi {x}""")'
+    md = _md_with_block(source)
+    cells = collect_cells(md)
+    out = _markdown_output("aaa", "hi 1")
+    out.console_html = "<pre>noise</pre>"
+    result, _ = inject_outputs(md, cells, {cells[0].source_hash: out})
+    assert "<pre" in result
+    assert "hi 1" in result
+
+
+def test_table_to_gfm_drops_noise_columns():
+    """pandas writes its index with an empty header; marimo's no-JS table
+    fallback adds an internal _marimo_row_id. Neither belongs in the export."""
+    from marimo_md_export.inject import _table_to_gfm
+
+    html = (
+        "<table><thead><tr><th></th><th>_marimo_row_id</th><th>a</th></tr></thead>"
+        "<tbody><tr><td>0</td><td>0</td><td>1</td></tr></tbody></table>"
+    )
+    assert _table_to_gfm(html) == "| a |\n| --- |\n| 1 |"
+
+
+def test_table_to_gfm_keeps_all_blank_headers():
+    """A table with no usable headers keeps its columns rather than vanishing."""
+    from marimo_md_export.inject import _table_to_gfm
+
+    html = (
+        "<table><thead><tr><th></th><th></th></tr></thead>"
+        "<tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
+    )
+    assert _table_to_gfm(html) == "|  |  |\n| --- | --- |\n| 1 | 2 |"

@@ -264,6 +264,15 @@ def _classify_and_build(
             f"<pre><code>{escape(csv_val)}</code></pre>",
         )
 
+    # Because the HTML export runs with MARIMO_NO_JS=true, mo.md() emits its
+    # own markdown source here rather than rendered HTML -- including the
+    # interpolated values of an f-string. Take it ahead of text/html so it is
+    # never wrapped in <pre> or bracket-escaped. Only cells that are genuinely
+    # a mo.md() call get passed through verbatim; see inject._format_output.
+    md_val = data.get("text/markdown")
+    if md_val and not data.get("text/html"):
+        return "markdown", unescape(md_val)
+
     html_val = data.get("text/html")
     if html_val:
         decoded = unescape(html_val)
@@ -310,10 +319,6 @@ def _classify_and_build(
             "text",
             f"<pre>{escape(plain)}</pre>",
         )
-
-    md_val = data.get("text/markdown")
-    if md_val:
-        return "html", unescape(md_val)
 
     unsupported = {
         "application/vnd.vega.v5+json",

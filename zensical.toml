@@ -26,6 +26,7 @@ nav = [
   { "Home" = "index.md" },
   { "Getting Started" = "getting_started.md" },
   { "Example" = "example.md" },
+  { "Troubleshooting" = "troubleshooting.md" },
 ]
 
 [project.theme]

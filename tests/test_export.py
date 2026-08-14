@@ -158,3 +158,32 @@ class TestStripHeaderFromFrontmatter:
         md = "---\ntitle: Test\nContent without closing"
         result = strip_header_from_frontmatter(md)
         assert result == md
+
+
+def test_export_html_sets_no_js_env():
+    """The no-JS flag is what makes mo.md() emit markdown rather than HTML."""
+    captured = {}
+
+    def _fake(cmd, *, env, timeout):
+        captured.update(env)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+    with patch("marimo_md_export.export._run_with_visible_output", side_effect=_fake):
+        export_html(Path("notebook.py"))
+
+    assert captured["MARIMO_NO_JS"] == "true"
+    assert captured["MPLBACKEND"] == "Agg"
+
+
+def test_export_md_does_not_set_no_js_env():
+    """The markdown export does not execute the notebook, so the flag is moot."""
+    captured = {}
+
+    def _fake(cmd, *, env, timeout):
+        captured.update(env)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+    with patch("marimo_md_export.export._run_with_visible_output", side_effect=_fake):
+        export_md(Path("notebook.py"))
+
+    assert "MARIMO_NO_JS" not in captured

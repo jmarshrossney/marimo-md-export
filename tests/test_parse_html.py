@@ -351,13 +351,25 @@ def test_unsupported_vega_type():
 
 def test_markdown_output():
     code = "mo_md_cell"
-    cell = _data_cell(code, "text/markdown", "<span>heading</span>")
+    cell = _data_cell(code, "text/markdown", "## heading")
     html = _make_html([cell])
     results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
+    assert out.output_type == "markdown"
+    assert out.raw_html == "## heading"
+
+
+def test_markdown_output_yields_to_html():
+    """text/html wins when both are present, so widget markup is not
+    mistaken for markdown source."""
+    code = "both_mimes"
+    cell = _data_cell(code, "text/markdown", "## heading")
+    cell["outputs"][0]["data"]["text/html"] = "<marimo-slider></marimo-slider>"
+    html = _make_html([cell])
+    out = extract_outputs(html)[_md5(code.strip())]
     assert out.output_type == "html"
-    assert "<span>heading</span>" in out.raw_html
+    assert "marimo-slider" in out.raw_html
 
 
 def test_latex_display_math():

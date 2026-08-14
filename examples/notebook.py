@@ -173,45 +173,23 @@ def _(mo, x):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
-    /// note | LaTeX math in f-strings
-    With f-string interpolation, inline math is exported as `<marimo-tex>`
-    with `||(` and `||)` delimiters instead of `$...$`. Register these in
-    your KaTeX or MathJax configuration:
+    mo.md("""
+    LaTeX math survives interpolation as ordinary `$...$` and `$$...$$`.
+    Note that LaTeX braces must be doubled inside an f-string, since a single
+    `{...}` is interpolation syntax.
+    """)
+    return
 
-    === "KaTeX"
 
-        ```js
-        renderMathInElement(body, {
-          delimiters: [
-            { left: "$$",  right: "$$",  display: true },
-            { left: "$",   right: "$",   display: false },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "||(", right: "||)", display: false },   // <-- new
-          ],
-        })
-        ```
+@app.cell(hide_code=True)
+def _(mo, x):
+    mo.md(rf"""
+    The samples span $x \in [{x.min():.0f}, {x.max():.0f}]$, over which
 
-    === "MathJax"
-
-        ```js
-        window.MathJax = {
-          tex: {
-            inlineMath: [["\\(", "\\)"], ["||(", "||)"]],   // <-- new
-            displayMath: [["\\[", "\\]"]],
-            processEscapes: true,
-            processEnvironments: true
-          },
-          options: {
-            ignoreHtmlClass: ".*|",
-            processHtmlClass: "arithmatex"
-          }
-        };
-        ```
-
-    See the [Zensical docs](https://zensical.org/docs/authoring/math/) for further guidance.
-    ///
+    $$
+    \int_{{{x.min():.0f}}}^{{{x.max():.0f}}} \sin(t) \, dt
+      = \cos({x.min():.0f}) - \cos({x.max():.0f})
+    $$
     """)
     return
 
