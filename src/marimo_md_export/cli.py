@@ -13,6 +13,7 @@ from .inject import (
 from .parse_html import extract_outputs
 from .parse_md import collect_cells
 from .transform import convert_admonitions
+from .version import __version__
 
 _err_console = Console(stderr=True)
 
@@ -21,6 +22,12 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
     add_completion=False,
 )
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(__version__)
+        raise typer.Exit()
 
 
 @app.command()
@@ -81,6 +88,13 @@ def main(
         metavar="MODE",
         help="Default overflow behavior for long output lines: 'wrap' (default) or 'scroll'. "
         "Can be overridden per cell with # @scroll or # @wrap.",
+    ),
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
+        help="Print the version and exit.",
     ),
 ) -> None:
     """Export a marimo notebook to markdown with rendered outputs injected.

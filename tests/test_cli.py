@@ -5,6 +5,7 @@ import pytest
 from typer.testing import CliRunner
 from unittest.mock import patch
 
+from marimo_md_export import __version__
 from marimo_md_export.cli import app
 
 runner = CliRunner()
@@ -172,6 +173,14 @@ def test_overflow_invalid(tmp_path):
         "Invalid overflow value" in result.output
         or "Invalid overflow value" in result.stderr
     )
+
+
+def test_version_flag():
+    # --version is eager, so it prints and exits before the required
+    # notebook/output arguments are validated.
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0, result.output
+    assert result.output.strip() == __version__
 
 
 def test_figures_dir_writes_files(tmp_path):
