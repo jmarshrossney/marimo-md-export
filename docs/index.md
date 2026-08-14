@@ -2,7 +2,7 @@
 
 ## What this is
 
-A tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell. 
+A CLI tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell. 
 The result is a self-contained markdown document with embedded figures, tables, console output, and other outputs.
 
 See the [example page](example.md) for output produced by `marimo-md-export` itself, running the demo notebook included in this repository.
@@ -61,7 +61,7 @@ These produce a placeholder comment (e.g. `<!-- unsupported output type: applica
 **Interactive elements are inert.**
 
 `mo.ui` widgets have no working form in a static page, so sliders, buttons and the like are exported as inert markup.
-See [Troubleshooting](troubleshooting.md#interactive-elements-dont-survive).
+See [Troubleshooting](troubleshooting.md#interactive-elements-dont-get-exported).
 
 **Some outputs just look bad.**
 

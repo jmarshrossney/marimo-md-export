@@ -48,6 +48,7 @@ dev = [
     {include-group = "test"},
 ]
 docs = [
+    "mkdocs-typer2>=0.4.1",
     "zensical>=0.0.37",
 ]
 examples = [

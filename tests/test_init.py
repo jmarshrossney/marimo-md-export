@@ -3,6 +3,16 @@ import sys
 import pytest
 
 
+def test_version_exported():
+    import importlib.metadata
+
+    import marimo_md_export
+
+    assert marimo_md_export.__version__ == importlib.metadata.version(
+        "marimo-md-export"
+    )
+
+
 def test_init_main():
     from marimo_md_export import main
 

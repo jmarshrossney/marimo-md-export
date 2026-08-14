@@ -1,0 +1,10 @@
+/*
+ * mkdocs-typer2 always emits a "Commands" section, which for a single-command
+ * app like this one reads "No commands available". Hide the heading, its
+ * paragraph, and the matching table-of-contents entry.
+ */
+#commands,
+#commands + p,
+.md-nav__item:has(> a[href="#commands"]) {
+  display: none;
+}
