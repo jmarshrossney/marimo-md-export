@@ -28,7 +28,7 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _():
     import marimo as mo
     import matplotlib.pyplot as plt
@@ -181,7 +181,7 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(mo, x):
     mo.md(rf"""
     The samples span $x \in [{x.min():.0f}, {x.max():.0f}]$, over which
