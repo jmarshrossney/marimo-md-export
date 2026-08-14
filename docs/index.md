@@ -21,13 +21,14 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 ## How it works
 
 1. Runs `marimo export md` to produce a markdown representation of the notebook (_without_ rendered outputs!), with cell sources in fenced ` ```python {.marimo}` blocks.
-2. Runs `marimo export html` to produce the fully-rendered HTML (with executed outputs).
+2. Runs `marimo export html` to produce the fully-rendered HTML (with executed outputs). This is the only step that executes the notebook, and it runs with `MARIMO_NO_JS=true` so that outputs are rendered for a reader without JavaScript.
 3. Collects all fenced code blocks from the markdown export.
 4. Matches each cell to its rendered output in the HTML export by hashing the cell source.
 5. Injects each output into the markdown immediately after its code block, labelled with the cell's marimo ID.
 
 Different cell outputs are handled as follows:
 
+- `mo.md()` outputs are emitted as plain markdown, including f-strings: interpolated values are substituted, and math stays as `$...$`.
 - Figures are embedded as base64 `<img>` tags, or written to files and linked with `![alt](path)` if `--figures-dir` is given.
 - Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
 - Console output (stdout and stderr) is captured and rendered as `<pre>` blocks.
@@ -46,11 +47,9 @@ The [example page](example.md) shows how these look in practice.
 By default, figures are stored as base64-encoded PNGs inline in the markdown.
 A notebook with many plots can produce a multi-megabyte file.
 
-Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax.
-The markdown page then stays small, at the cost of no longer being self-contained.
+Some suggestions:
 
-Some further suggestions:
-
+- Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax. The markdown page then stays small at the cost of no longer being self-contained.
 - Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
 - Consider using `# @suppress` in cells whose outputs you don't need.
 
@@ -58,6 +57,11 @@ Some further suggestions:
 
 Vega charts, Jupyter widgets, and other rich outputs cannot be rendered in static markdown.
 These produce a placeholder comment (e.g. `<!-- unsupported output type: application/vnd.vega.v5+json -->`).
+
+**Interactive elements are inert.**
+
+`mo.ui` widgets have no working form in a static page, so sliders, buttons and the like are exported as inert markup.
+See [Troubleshooting](troubleshooting.md#interactive-elements-dont-survive).
 
 **Some outputs just look bad.**
 

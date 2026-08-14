@@ -2,7 +2,7 @@ import hashlib
 
 import pytest
 
-from marimo_md_export.parse_md import collect_cells
+from marimo_md_export.parse_md import _is_mo_md, collect_cells
 
 
 def _md5(s: str) -> str:
@@ -249,3 +249,40 @@ def test_all_fence_widths_in_one_document():
     assert len(cells) == len(widths)
     assert [c.source for c in cells] == [src + "\n" for src in sources]
     assert len({c.source_hash for c in cells}) == len(widths)
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ('mo.md("""hello""")', True),
+        ('mo.md(r"""hello""")', True),
+        ('mo.md(f"""hello {x}""")', True),
+        ('mo.md(rf"""hello {x}""")', True),
+        # The last statement is what marimo renders, so preceding setup is fine.
+        ('y = 1\nmo.md(f"""value {y}""")', True),
+        # Not a bare mo.md() call: the output is not markdown.
+        # A trailing bare name resolves back to its assignment.
+        ('title = mo.md(r"""hello""")\ntitle', True),
+        ('title = mo.md(r"""hello""")', False),
+        ("title = mo.hstack([])\ntitle", False),
+        ('title = mo.md(r"""a""")\ntitle = mo.hstack([])\ntitle', False),
+        ("undefined_name", False),
+        ('mo.hstack([mo.md("""a"""), mo.md("""b""")])', False),
+        ('mo.md("""hello""")\nmo.ui.slider(1, 10)', False),
+        ("print('hi')", False),
+        ("import marimo as mo", False),
+        ("this is not python", False),
+        ("", False),
+    ],
+)
+def test_is_mo_md(source, expected):
+    assert _is_mo_md(source) is expected
+
+
+def test_is_mo_md_set_on_collected_cells():
+    md = (
+        '```python {.marimo}\nmo.md(f"""x = {x}""")\n```\n\n'
+        "```python {.marimo}\nx = 1\n```\n"
+    )
+    cells = collect_cells(md)
+    assert [c.is_mo_md for c in cells] == [True, False]

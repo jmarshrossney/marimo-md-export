@@ -28,7 +28,7 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _():
     import marimo as mo
     import matplotlib.pyplot as plt
@@ -173,45 +173,23 @@ def _(mo, x):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
-    /// note | LaTeX math in f-strings
-    With f-string interpolation, inline math is exported as `<marimo-tex>`
-    with `||(` and `||)` delimiters instead of `$...$`. Register these in
-    your KaTeX or MathJax configuration:
+    mo.md("""
+    LaTeX math survives interpolation as ordinary `$...$` and `$$...$$`.
+    Note that LaTeX braces must be doubled inside an f-string, since a single
+    `{...}` is interpolation syntax.
+    """)
+    return
 
-    === "KaTeX"
 
-        ```js
-        renderMathInElement(body, {
-          delimiters: [
-            { left: "$$",  right: "$$",  display: true },
-            { left: "$",   right: "$",   display: false },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "||(", right: "||)", display: false },   // <-- new
-          ],
-        })
-        ```
+@app.cell
+def _(mo, x):
+    mo.md(rf"""
+    The samples span $x \in [{x.min():.0f}, {x.max():.0f}]$, over which
 
-    === "MathJax"
-
-        ```js
-        window.MathJax = {
-          tex: {
-            inlineMath: [["\\(", "\\)"], ["||(", "||)"]],   // <-- new
-            displayMath: [["\\[", "\\]"]],
-            processEscapes: true,
-            processEnvironments: true
-          },
-          options: {
-            ignoreHtmlClass: ".*|",
-            processHtmlClass: "arithmatex"
-          }
-        };
-        ```
-
-    See the [Zensical docs](https://zensical.org/docs/authoring/math/) for further guidance.
-    ///
+    $$
+    \int_{{{x.min():.0f}}}^{{{x.max():.0f}}} \sin(t) \, dt
+      = \cos({x.min():.0f}) - \cos({x.max():.0f})
+    $$
     """)
     return
 
@@ -407,6 +385,36 @@ def _(mo):
     Admonitions without a title also work — the title is simply omitted.
     ///
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Layout helpers
+
+    A bare `mo.md()` call exports as plain markdown, but nesting it inside a
+    layout helper such as `mo.hstack` makes the *layout* the cell's output.
+    That is injected as HTML, and any math inside it is wrapped in
+    `<marimo-tex>` tags with `||(`/`||)` delimiters rather than `$...$`.
+
+    It renders correctly if those delimiters are registered with your math
+    renderer, but the markdown source is no longer readable on its own — so
+    prefer a bare `mo.md()` call where you can.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.hstack(
+        [
+            mo.md(r"""Euler: $e^{i\pi} + 1 = 0$"""),
+            mo.md(r"""Gauss: $\int_{-\infty}^{\infty} e^{-t^2} dt = \sqrt{\pi}$"""),
+        ],
+        justify="start",
+        gap=2,
+    )
     return
 
 

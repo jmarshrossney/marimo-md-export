@@ -26,6 +26,16 @@ nav = [
   { "Home" = "index.md" },
   { "Getting Started" = "getting_started.md" },
   { "Example" = "example.md" },
+  { "Troubleshooting" = "troubleshooting.md" },
+]
+
+extra_javascript = [
+    "_static/js/katex.js",
+    "https://unpkg.com/katex@0/dist/katex.min.js",
+    "https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"
+]
+extra_css = [
+    "https://unpkg.com/katex@0/dist/katex.min.css"
 ]
 
 [project.theme]

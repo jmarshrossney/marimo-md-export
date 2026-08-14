@@ -100,6 +100,13 @@ def export_html(
             cmd.extend(extra_args)
         env = os.environ.copy()
         env["MPLBACKEND"] = "Agg"
+        # Render outputs as though no JavaScript were available. This makes
+        # mo.md() emit its own (post-interpolation) markdown source instead of
+        # rendered HTML, which is what lets f-string cells survive as plain
+        # markdown -- see parse_html._classify_and_build. It also downgrades
+        # interactive widgets to static representations, which is what we want
+        # for a static markdown export.
+        env["MARIMO_NO_JS"] = "true"
         try:
             result = _run_with_visible_output(cmd, env=env, timeout=timeout)
         except subprocess.TimeoutExpired:

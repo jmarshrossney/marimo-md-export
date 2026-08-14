@@ -47,6 +47,15 @@ def _table_to_gfm(html: str) -> str | None:
     if any(len(row) != ncols for row in rows):
         return None
 
+    # Drop columns that carry no information in a static table: pandas writes
+    # its index with an empty header, and marimo's no-JS table fallback adds an
+    # internal `_marimo_row_id`. Both are noise in the exported markdown.
+    drop = {i for i, name in enumerate(header) if not name or name == "_marimo_row_id"}
+    if drop and len(drop) < ncols:
+        header = [c for i, c in enumerate(header) if i not in drop]
+        body = [[c for i, c in enumerate(row) if i not in drop] for row in body]
+        ncols = len(header)
+
     sep = ["---"] * ncols
 
     def _row(cells: list[str]) -> str:
@@ -79,8 +88,20 @@ def _escape_brackets_in_html(html: str) -> str:
     )
 
 
-def _format_output(output: ExtractedOutput, pre_style: str) -> str:
+def _format_output(
+    output: ExtractedOutput, pre_style: str, is_mo_md: bool = False
+) -> str:
     comment = f"<!-- @output:{output.cell_id} -->"
+
+    if (
+        is_mo_md
+        and output.output_type == "markdown"
+        and not (output.console_html or output.stderr_html or output.media_html)
+    ):
+        # Already markdown: emit it untouched. Escaping brackets here would
+        # break links and mermaid node labels, and a <pre> wrapper would
+        # defeat the point.
+        return comment + "\n\n" + output.raw_html
 
     parts = []
     if output.console_html:
@@ -103,7 +124,10 @@ def _format_output(output: ExtractedOutput, pre_style: str) -> str:
                     _inject_pre_style(output.raw_html, pre_style)
                 )
             )
-        elif output.output_type in ("html", "figure"):
+        elif output.output_type in ("html", "figure", "markdown"):
+            # A "markdown" output reaching here is not from a mo.md() cell --
+            # e.g. a UI element whose no-JS fallback is markup. Treat it as the
+            # HTML it effectively is.
             parts.append(_escape_brackets_in_html(output.raw_html))
         else:
             parts.append(
@@ -157,7 +181,7 @@ def inject_outputs(
             if cell.overflow == "wrap"
             else default_pre_style
         )
-        formatted = _format_output(matched, pre_style)
+        formatted = _format_output(matched, pre_style, is_mo_md=cell.is_mo_md)
         if cell.hide_code:
             result = result.replace(cell.block_text, formatted, 1)
         else:
