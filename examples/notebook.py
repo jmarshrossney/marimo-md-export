@@ -391,6 +391,36 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
+    ## Layout helpers
+
+    A bare `mo.md()` call exports as plain markdown, but nesting it inside a
+    layout helper such as `mo.hstack` makes the *layout* the cell's output.
+    That is injected as HTML, and any math inside it is wrapped in
+    `<marimo-tex>` tags with `||(`/`||)` delimiters rather than `$...$`.
+
+    It renders correctly if those delimiters are registered with your math
+    renderer, but the markdown source is no longer readable on its own — so
+    prefer a bare `mo.md()` call where you can.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.hstack(
+        [
+            mo.md(r"""Euler: $e^{i\pi} + 1 = 0$"""),
+            mo.md(r"""Gauss: $\int_{-\infty}^{\infty} e^{-t^2} dt = \sqrt{\pi}$"""),
+        ],
+        justify="start",
+        gap=2,
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
     ## Multiple outputs
 
     A cell with both console output and an expression result.

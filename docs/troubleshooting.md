@@ -25,6 +25,8 @@ It is injected as HTML, and any math inside it is wrapped in `<marimo-tex>` tags
 class="paragraph">nested: <marimo-tex class="arithmatex">||(\beta_{42}||)</marimo-tex></span></span></div>
 ```
 
+See [Layout helpers](example.md#layout-helpers) on the example page for how this renders in practice.
+
 The simplest fix is to hoist the markdown into its own cell, so it is a bare `mo.md(...)` call.
 Assigning it to a name first is also fine — `body = mo.md(f"""...""")` followed by `body` still exports as plain markdown.
 
