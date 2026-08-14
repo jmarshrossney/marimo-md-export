@@ -7,9 +7,9 @@
 [![Docs](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/docs.yml/badge.svg)](https://jmarshrossney.github.io/marimo-md-export)
 
 A `uv` tool that wraps `marimo export`, extracts rendered outputs from the HTML export, and injects them into the markdown export.
-The result is a self-contained markdown document with embedded figures (as base64 `<img>` tags), tables (as GFM or HTML), and other cell outputs.
+The result is a markdown document with tables (as GFM or HTML), console output, and other cell outputs, plus a sidecar assets directory for figures and the intermediate HTML notebook.
 `mo.md()` cells come through as plain markdown — including f-strings, whose interpolated values are substituted and whose math stays as `$...$`.
-Pass `--figures-dir` to write figures out as image files and link to them with `![alt](path)` instead of embedding them.
+Pass `--self-contained` to embed figures as base64 data URIs instead of writing them out.
 
 **[Full documentation](https://jmarshrossney.github.io/marimo-md-export)**
 
@@ -28,6 +28,8 @@ Then run:
 ```sh
 uvx marimo-md-export notebook.py output.md
 ```
+
+This writes `output.md`, plus `output_assets/notebook.html` and `output_assets/figure-1.png` (and so on).
 
 ## Integrating with documentation sites
 
@@ -50,7 +52,7 @@ docs:
   zensical build
 ```
 
-This runs `marimo-md-export` to produce a self-contained markdown page (with cell outputs injected), then builds the site.
+This runs `marimo-md-export` to produce a markdown page (with cell outputs injected) and its assets directory, then builds the site.
 
 ## Development
 

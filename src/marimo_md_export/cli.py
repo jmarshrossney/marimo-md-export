@@ -45,19 +45,24 @@ def main(
         writable=True,
         help="Where to write the resulting markdown file",
     ),
-    html_output: Path = typer.Option(
-        None,
-        "--html-output",
-        writable=True,
-        metavar="PATH",
-        help="If provided, also save the intermediate HTML export to this path",
+    keep_html: bool = typer.Option(
+        True,
+        "--keep-html/--no-keep-html",
+        help="Write the intermediate HTML export to {assets-dir}/notebook.html "
+        "(default: keep). Use --no-keep-html to discard it.",
     ),
-    figures_dir: Path | None = typer.Option(
+    self_contained: bool = typer.Option(
+        False,
+        "--self-contained/--no-self-contained",
+        help="Embed figures as base64 data URIs in the markdown instead of "
+        "writing them as files under the assets directory.",
+    ),
+    assets_dir: Path | None = typer.Option(
         None,
-        "--figures-dir",
+        "--assets-dir",
         metavar="PATH",
-        help="Write figures as image files into this directory and link to them "
-        "from the markdown, instead of embedding them as base64 data URIs. "
+        help="Directory for sidecar assets (figures and/or notebook.html). "
+        "Defaults to {output_stem}_assets/ beside the markdown file. "
         "Relative paths are resolved against the output file's directory.",
     ),
     marimo_args: str = typer.Option(
@@ -130,12 +135,6 @@ def main(
         typer.echo(f"marimo export html failed:\n{exc}", err=True)
         raise typer.Exit(1)
 
-    if html_output is not None:
-        html_output.parent.mkdir(parents=True, exist_ok=True)
-        html_output.write_bytes(html)
-        if verbose:
-            typer.echo(f"Wrote {html_output}")
-
     if overflow == "scroll":
         pre_style = _PRE_STYLE_SCROLL
     elif overflow == "wrap":
@@ -155,8 +154,28 @@ def main(
 
     result = strip_header_from_frontmatter(result)
 
-    if figures_dir is not None:
-        result, figures, fig_warnings = externalize_figures(result, output, figures_dir)
+    resolved_assets = (
+        assets_dir if assets_dir is not None else Path(f"{output.stem}_assets")
+    )
+    assets_path = (
+        resolved_assets
+        if resolved_assets.is_absolute()
+        else output.parent / resolved_assets
+    )
+    if keep_html or not self_contained:
+        assets_path.mkdir(parents=True, exist_ok=True)
+
+    if keep_html:
+        html_path = assets_path / "notebook.html"
+        html_path.parent.mkdir(parents=True, exist_ok=True)
+        html_path.write_bytes(html)
+        if verbose:
+            typer.echo(f"Wrote {html_path}")
+
+    if not self_contained:
+        result, figures, fig_warnings = externalize_figures(
+            result, output, resolved_assets
+        )
         for warning in fig_warnings:
             _err_console.print(f"WARNING: {warning}", style="bold yellow")
         if verbose:

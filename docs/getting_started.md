@@ -88,33 +88,48 @@ For example, this project uses the following [just](https://github.com/casey/jus
 
 ```just
 docs:
-  marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
+  marimo-md-export examples/notebook.py docs/example.md
   zensical build
 ```
 
-This runs `marimo-md-export` to produce a markdown page (with cell outputs injected), then builds the site.
+This runs `marimo-md-export` to produce a markdown page (with cell outputs injected) and its assets directory, then builds the site.
 
-## Writing figures to files
+## Assets directory
 
-By default, figures are embedded directly in the markdown as base64 data URIs, which keeps the page self-contained but makes it large.
-Pass `--figures-dir` to write them out as image files instead:
+By default, sidecar files are written under `{output_stem}_assets/` beside the markdown file.
+For `docs/example.md` that means:
 
-```sh
-marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
+```text
+docs/example.md
+docs/example_assets/notebook.html
+docs/example_assets/figure-1.png
+docs/example_assets/figure-2.svg
+…
 ```
 
-This writes `docs/figures/example-1.png`, `docs/figures/example-2.svg`, and so on, and references them from the markdown with standard image syntax:
+Figures are referenced from the markdown with standard image syntax:
 
 ```md
-![png](figures/example-1.png)
+![png](example_assets/figure-1.png)
 ```
 
-Files are named after the output file's stem, so several notebooks can safely share one figures directory.
 Each image keeps its native format — matplotlib plots become `.png`, graphviz graphs become `.svg`, and so on; nothing is converted.
+The intermediate HTML notebook is kept as `notebook.html` inside the same directory, so it never collides with the markdown page's route under a static site generator.
 
-The path is interpreted relative to the directory containing the output file, so the links in the markdown are relative too and survive being served from any URL prefix.
+The assets path is interpreted relative to the directory containing the output file, so the links in the markdown are relative too and survive being served from any URL prefix.
 Because they are ordinary markdown image links, your site generator resolves them exactly as it would any other relative link in your docs.
 
-Give an absolute path if you'd rather write elsewhere; the links will then be absolute as well.
+### Controlling assets
+
+| Flag | Effect |
+|---|---|
+| `--assets-dir PATH` | Choose the assets directory (default: `{output_stem}_assets/`) |
+| `--no-keep-html` | Discard the intermediate HTML instead of writing `notebook.html` |
+| `--self-contained` | Embed figures as base64 data URIs instead of writing image files |
+
+An assets directory is created whenever HTML is kept or figures are externalized (the default for both).
+With `--no-keep-html --self-contained`, no assets directory is created at all.
+
+Give an absolute `--assets-dir` if you'd rather write elsewhere; the links will then be absolute as well.
 
 This project's own docs are built this way — see the `docs` recipe in the [justfile](https://github.com/jmarshrossney/marimo-md-export/blob/main/justfile).

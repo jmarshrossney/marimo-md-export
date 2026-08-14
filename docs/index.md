@@ -2,8 +2,8 @@
 
 ## What this is
 
-A CLI tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell. 
-The result is a self-contained markdown document with embedded figures, tables, console output, and other outputs.
+A CLI tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell.
+The result is a markdown document with tables, console output, and other outputs, plus a sidecar assets directory for figures and the intermediate HTML notebook.
 
 See the [example page](example.md) for output produced by `marimo-md-export` itself, running the demo notebook included in this repository.
 
@@ -12,7 +12,7 @@ See the [example page](example.md) for output produced by `marimo-md-export` its
 Marimo supports markdown representations of notebooks (e.g. through `marimo export md`), which can be integrated into markdown-based static site generators like [`mkdocs`](https://www.mkdocs.org/) or [`zensical`](https://zensical.org/).
 However, the markdown representation doesn't include cell outputs such as plots, tables, console output, errors, etc.[^1]
 
-[^1]: 
+[^1]:
     Of course, you could use the HTML representation (`marimo export html`) directly in the site, but you'll lose the layout (e.g. header, navigation, side-bar, footer) and theming (colours, fonts).
     You could also embed the HTML in an iframe but it looks shite.
 
@@ -25,11 +25,12 @@ Essentially, `marimo-md-export` is a **stop-gap solution** for me to easily inte
 3. Collects all fenced code blocks from the markdown export.
 4. Matches each cell to its rendered output in the HTML export by hashing the cell source.
 5. Injects each output into the markdown immediately after its code block, labelled with the cell's marimo ID.
+6. Writes sidecar assets under `{output_stem}_assets/`: the intermediate HTML as `notebook.html`, and figures as `figure-1.png`, `figure-2.svg`, and so on.
 
 Different cell outputs are handled as follows:
 
 - `mo.md()` outputs are emitted as plain markdown, including f-strings: interpolated values are substituted, and math stays as `$...$`.
-- Figures are embedded as base64 `<img>` tags, or written to files and linked with `![alt](path)` if `--figures-dir` is given.
+- Figures are written to the assets directory and linked with `![alt](path)`, or embedded as base64 `<img>` tags if `--self-contained` is given.
 - Tables are converted to GFM markdown tables where possible, falling back to raw HTML for tables with merged cells.
 - Console output (stdout and stderr) is captured and rendered as `<pre>` blocks.
 - JSON values (dicts, lists) are pretty-printed in code blocks, with marimo type prefixes stripped.
@@ -42,14 +43,15 @@ The [example page](example.md) shows how these look in practice.
 
 ## Caveats
 
-**Embedded figures produce large files.**
+**Self-contained figures produce large files.**
 
-By default, figures are stored as base64-encoded PNGs inline in the markdown.
+With `--self-contained`, figures are stored as base64-encoded PNGs inline in the markdown.
 A notebook with many plots can produce a multi-megabyte file.
+The default is to write figures out under the assets directory instead, referenced with standard `![alt](path)` syntax — see [Assets directory](getting_started.md#assets-directory).
 
 Some suggestions:
 
-- Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax. The markdown page then stays small at the cost of no longer being self-contained.
+- Prefer the default assets directory so the markdown page stays small.
 - Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
 - Consider using `# @suppress` in cells whose outputs you don't need.
 

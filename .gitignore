@@ -6,6 +6,6 @@ __marimo__/
 .coverage
 
 example.md
-docs/figures/
+docs/example_assets/
 
 notes/
