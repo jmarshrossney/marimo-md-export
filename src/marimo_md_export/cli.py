@@ -42,11 +42,13 @@ def main(
         None,
         "--html-output",
         writable=True,
+        metavar="PATH",
         help="If provided, also save the intermediate HTML export to this path",
     ),
     figures_dir: Path | None = typer.Option(
         None,
         "--figures-dir",
+        metavar="PATH",
         help="Write figures as image files into this directory and link to them "
         "from the markdown, instead of embedding them as base64 data URIs. "
         "Relative paths are resolved against the output file's directory.",
@@ -54,9 +56,12 @@ def main(
     marimo_args: str = typer.Option(
         "",
         "--marimo-args",
+        metavar="TEXT",
         help="Extra arguments forwarded to marimo export (space-separated)",
     ),
-    verbose: bool = typer.Option(False, "--verbose", "-v"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Print progress to stdout"
+    ),
     sandbox: bool = typer.Option(
         False,
         "--sandbox/--no-sandbox",
@@ -66,12 +71,14 @@ def main(
     timeout: int | None = typer.Option(
         None,
         "--timeout",
+        metavar="SECONDS",
         help="Maximum seconds to wait for each marimo export subprocess "
         "(default: no timeout).",
     ),
     overflow: str = typer.Option(
         "wrap",
         "--overflow",
+        metavar="MODE",
         help="Default overflow behavior for long output lines: 'wrap' (default) or 'scroll'. "
         "Can be overridden per cell with # @scroll or # @wrap.",
     ),

@@ -57,7 +57,7 @@ The cell's code block still appears in the markdown — only its rendered output
 To hide the code instead, mark the cell `@app.cell(hide_code=True)` (as the marimo editor does when you hide a cell's code).
 Its code block is then omitted from the export, while its output is still rendered (unless you also use `# @suppress`).
 
-Note that a `mo.md()` cell whose code you don't want to see may not need `hide_code` at all — see [why some `mo.md()` cells show their code](troubleshooting.md#why-some-momd-cells-show-their-code).
+Note that a `mo.md()` cell whose code you don't want to see may not need `hide_code` at all — see [why some `mo.md()` cells show their code](troubleshooting.md#some-momd-cells-show-their-code).
 
 
 ### Run the export
@@ -70,26 +70,7 @@ There are two required path-like arguments: the `.py` marimo notebook and the ou
 marimo-md-export notebook.py output.md
 ```
 
-Run `marimo-md-export --help` to see all available options.
-
-**Options**
-
-| Flag | Description |
-|---|---|
-| `--html-output PATH` | If provided, also save the intermediate HTML export to this path |
-| `--figures-dir PATH` | Write figures as image files into this directory and link to them from the markdown, instead of embedding them as base64 data URIs. Relative paths are resolved against the output file's directory. |
-| `--marimo-args TEXT` | Extra arguments forwarded to `marimo export` (space-separated) |
-| `--sandbox`/`--no-sandbox` | Run `marimo export` in an isolated uv environment |
-| `--timeout SECONDS` | Maximum seconds to wait for each `marimo export` subprocess (default: no timeout) |
-| `--overflow` | Default overflow behavior for long output lines: `wrap` (default) or `scroll`. Can be overridden per cell with `# @scroll` or `# @wrap`. |
-| `-v`, `--verbose` | Print progress to stdout |
-| `-h`, `--help` | Show help and exit |
-
-
-!!! warning "Existing files are overwritten by default."
-
-    `marimo-md-export` invokes `marimo export` as a subprocess. 
-    To ensure fully non-interactive operation, `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. 
+Run `marimo-md-export --help`, or see the [CLI reference](cli.md), for all available options.
 
 ### Integrating with documentation sites
 
@@ -102,40 +83,10 @@ For example, this project uses the following [just](https://github.com/casey/jus
 
 ```just
 docs:
-  marimo-md-export examples/notebook.py docs/example.md
-  zensical build
-```
-
-This runs `marimo-md-export` to produce a self-contained markdown page (with cell
-outputs injected), then builds the site.
-
-### Writing figures to files
-
-By default, figures are embedded directly in the markdown as base64 data URIs, which keeps the page self-contained but makes it large.
-Pass `--figures-dir` to write them out as image files instead:
-
-```sh
-marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
-```
-
-This writes `docs/figures/example-1.png`, `docs/figures/example-2.svg`, and so on, and references them from the markdown with standard image syntax:
-
-```md
-![png](figures/example-1.png)
-```
-
-Files are named after the output file's stem, so several notebooks can safely share one figures directory.
-Each image keeps its native format — matplotlib plots become `.png`, graphviz graphs become `.svg`, and so on; nothing is converted.
-
-The path is interpreted relative to the directory containing the output file, so the links in the markdown are relative too and survive being served from any URL prefix.
-Because they are ordinary markdown image links, your site generator resolves them exactly as it would any other relative link in your docs.
-
-Give an absolute path if you'd rather write elsewhere; the links will then be absolute as well.
-
-This project's own docs are built this way — see the `docs` recipe in the [justfile](https://github.com/jmarshrossney/marimo-md-export/blob/main/justfile):
-
-```just
-docs:
   marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
   zensical build
 ```
+
+This runs `marimo-md-export` to produce a markdown page (with cell outputs injected), then builds the site.
+
+`--figures-dir` writes figures out as image files rather than embedding them as base64 data URIs, which keeps the generated page small — see [writing figures to files](cli.md#writing-figures-to-files).

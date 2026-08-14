@@ -25,6 +25,7 @@ Copyright &copy; 2026 Joe Marsh Rossney
 nav = [
   { "Home" = "index.md" },
   { "Getting Started" = "getting_started.md" },
+  { "CLI Reference" = "cli.md" },
   { "Example" = "example.md" },
   { "Troubleshooting" = "troubleshooting.md" },
 ]
@@ -35,6 +36,7 @@ extra_javascript = [
     "https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"
 ]
 extra_css = [
+    "_static/css/typer.css",
     "https://unpkg.com/katex@0/dist/katex.min.css"
 ]
 
@@ -248,3 +250,11 @@ combine_header_slug = true
 [project.markdown_extensions.pymdownx.tasklist]
 custom_checkbox = true
 [project.markdown_extensions.pymdownx.tilde]
+
+# mkdocs-typer2 generates the CLI reference page from the Typer app, and emits
+# its argument/option lists as markdown tables.
+[project.markdown_extensions.tables]
+
+[project.markdown_extensions."mkdocs_typer2.markdown:makeExtension"]
+pretty = true
+engine = "native"
