@@ -2,7 +2,7 @@
 
 ## What this is
 
-A tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell. 
+A CLI tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell. 
 The result is a self-contained markdown document with embedded figures, tables, console output, and other outputs.
 
 See the [example page](example.md) for output produced by `marimo-md-export` itself, running the demo notebook included in this repository.
@@ -49,7 +49,7 @@ A notebook with many plots can produce a multi-megabyte file.
 
 Some suggestions:
 
-- Pass [`--figures-dir`](cli.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax. The markdown page then stays small at the cost of no longer being self-contained.
+- Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax. The markdown page then stays small at the cost of no longer being self-contained.
 - Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
 - Consider using `# @suppress` in cells whose outputs you don't need.
 
