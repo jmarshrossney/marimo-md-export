@@ -53,9 +53,11 @@ This tool requires marimo notebooks in `.py` format (not `.md`).[^1]
 Cell outputs are rendered in the export by default.
 If a cell produces output you don't want in the export, add `# @suppress` anywhere inside the cell.
 The cell's code block still appears in the markdown — only its rendered output is omitted.
-There is currently no way to hide a cell's code.
 
-If you mark a cell with `@app.cell(hide_code=True)` (as the marimo editor does when you hide a cell's code), its code block is omitted from the export, while its output is still rendered (unless you use `# @suppress`).
+To hide the code instead, mark the cell `@app.cell(hide_code=True)` (as the marimo editor does when you hide a cell's code).
+Its code block is then omitted from the export, while its output is still rendered (unless you also use `# @suppress`).
+
+Note that a `mo.md()` cell whose code you don't want to see may not need `hide_code` at all — see [why some `mo.md()` cells show their code](troubleshooting.md#why-some-momd-cells-show-their-code).
 
 
 ### Run the export
@@ -84,6 +86,10 @@ Run `marimo-md-export --help` to see all available options.
 | `-h`, `--help` | Show help and exit |
 
 
+!!! warning "Existing files are overwritten by default."
+
+    `marimo-md-export` invokes `marimo export` as a subprocess. 
+    To ensure fully non-interactive operation, `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. 
 
 ### Integrating with documentation sites
 
@@ -133,28 +139,3 @@ docs:
   marimo-md-export examples/notebook.py docs/example.md --figures-dir figures
   zensical build
 ```
-
-## Gotchas
-
-**Existing files are overwritten by default.**
-
-`marimo-md-export` invokes `marimo export` as a subprocess. 
-To ensure fully non-interactive operation, `--force` is always passed to `marimo export`, suppressing file-overwrite prompts. 
-
-**Long output lines are a bit awkward.**
-
-By default, long output lines wrap within the container using CSS `white-space: pre-wrap; overflow-wrap: break-word;`.
-This keeps everything visible without scrolling but can break custom `__str__` formatting.
-
-Use `--overflow scroll` to switch to horizontal scrolling globally.
-This preserves the original formatting exactly but requires users to scroll horizontally for long lines.
-
-You can also override the global default on a per-cell basis by adding `# @scroll` or `# @wrap` anywhere inside the cell (similar to `# @suppress`).
-The last marker in a cell wins if both are present.
-
-**Stale figure files are not cleaned up.**
-
-With `--figures-dir`, re-running the export overwrites `<stem>-1`, `<stem>-2`, ... in place, but nothing is deleted.
-If a notebook loses a figure, the leftover file from the previous run stays behind.
-
-Point `--figures-dir` at a directory used for nothing else (and gitignore it), so you can safely delete it before a rebuild.

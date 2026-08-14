@@ -1,37 +1,42 @@
 # Troubleshooting
 
-## Why some `mo.md()` cells show their code
+## Some `mo.md()` cells show their code
 
-A `mo.md("""...""")` cell usually disappears into the page, leaving only its prose.
-A cell like `mo.md(f"""...{value}...""")` instead leaves a visible ` ```python {.marimo}` block, with the prose underneath it.
+"Normal" `mo.md("""...""")` cells are converted directly to markdown.
+However, cells of the form `mo.md(f"""...{value}...""")` leave a visible ` ```python {.marimo}` block in the exported markdown, with the exported content underneath.
 
-This is decided by `marimo export md`, upstream of this tool.
+This is due to behaviour of `marimo export md`, i.e. marimo itself, not `marimo-md-export`.
 When marimo writes the markdown export it tries to read the text of each `mo.md()` call straight out of the source, without running the notebook.
-That only works when the cell references nothing but `mo` and the argument is a single string literal.
-An f-string with interpolation fails both tests, so marimo leaves the cell as a code block, and `marimo-md-export` appends the rendered output after it.
+That only works for cells that
 
-The trigger is **interpolation**, not the string prefix — `r"""`, `f"""` and `rf"""` all inline fine as long as there are no `{...}` placeholders.
+1. Comprise a single bare `mo.md(...)` statement
+2. Depend on `mo` and nothing else
+3. Don't define any variables
+4. Contain a single string literal
 
-Either way the prose itself comes through as plain markdown, math included.
-To hide the code block as well, mark the cell `@app.cell(hide_code=True)`; see [Write your notebook](getting_started.md#write-your-notebook).
+Any cells that don't satisfy these conditions are left as code blocks.
+This includes some common cases: 
 
-## `mo.md()` inside a layout helper renders as HTML
+- f-strings with variable interpolation
+- cells that compute a value before calling `mo.md()`
 
-When `mo.md()` is nested inside a layout helper such as `mo.hstack`, `mo.vstack` or `mo.accordion`, the cell's output is the *layout*, not markdown.
-It is injected as HTML, and any math inside it is wrapped in `<marimo-tex>` tags with non-standard delimiters:
+If this is undesirable, the code cell can be hidden using `hide_code=True`.
+
+## Math is broken for `mo.md()` inside a layout helper
+
+When `mo.md()` is nested inside a layout helper such as `mo.hstack`, `mo.vstack` or `mo.accordion`, the cell's output is the *layout*, not markdown, and it gets injected into the exported markdown document as HTML.
+
+For docs sites this HTML should render nicely, so this isn't really a problem unless you're viewing the exported markdown using a tool that doesn't render HTML.
+
+The main issue I've encountered in such cases is that **math gets wrapped in `<marimo-tex>` tags with non-standard delimiters**, e.g.
 
 ```html
 <div style='display: flex;...'><span class="markdown prose dark:prose-invert contents"><span
 class="paragraph">nested: <marimo-tex class="arithmatex">||(\beta_{42}||)</marimo-tex></span></span></div>
 ```
 
-See [Layout helpers](example.md#layout-helpers) on the example page for how this renders in practice.
-
-The simplest fix is to hoist the markdown into its own cell, so it is a bare `mo.md(...)` call.
-Assigning it to a name first is also fine — `body = mo.md(f"""...""")` followed by `body` still exports as plain markdown.
-
-If you need the layout, register the delimiters with your math renderer.
-Inline math uses `||(` and `||)`; display math uses `||[` and `||]`.
+This fails to render unless you register the necessary delimiters with your math renderer.
+E.g. for this Zensical site I add the following:
 
 === "KaTeX"
 
@@ -63,14 +68,11 @@ Inline math uses `||(` and `||)`; display math uses `||[` and `||]`.
     };
     ```
 
-The square brackets appear HTML-escaped in the markdown, as `||&#91;` and `||&#93;`, because brackets inside injected HTML are escaped so they aren't mistaken for link syntax.
-A browser decodes them before the math renderer sees them.
-
 See the [Zensical docs](https://zensical.org/docs/authoring/math/) for further guidance.
 
 ## LaTeX braces inside f-strings
 
-In an f-string, `{` and `}` are interpolation syntax, so LaTeX braces must be doubled:
+In an f-string, `{` and `}` are interpolation syntax, so LaTeX braces need to be doubled:
 
 ```python
 x = 42
@@ -81,18 +83,13 @@ Right:   $\sigma_{{x}}$    renders as \sigma_x
 """)
 ```
 
-A single `{x}` silently interpolates the variable rather than producing a LaTeX group, so you usually get valid-but-wrong math rather than an error.
+A single `{x}` interpolates the variable rather than producing a LaTeX group, so you usually get valid-but-wrong math rather than an error.
 
-## Interactive elements don't survive
+## Interactive elements don't get exported
 
-The HTML export is run with `MARIMO_NO_JS=true`, so marimo renders outputs as it would for a viewer with no JavaScript.
-That is what lets `mo.md()` emit real markdown, but it also means interactive elements have no interactive form to fall back on:
+As of version 0.10.0, `marimo-md-export` runs the HTML export with `MARIMO_NO_JS=true`, so marimo renders outputs as it would for a viewer with no JavaScript.
+This change was made so that `mo.md` cells behave better, emitting markdown in almost all cases rather than HTML that needed to be handled separately in common cases like f-strings.
 
-- `mo.ui.slider` and friends produce inert markup — there is no way to make them work in a static page.
-- `mo.ui.table` renders as a static table. A DataFrame becomes a GFM table; other data (a list of dicts, say) falls back to a plain `repr`.
+The problem with this is that if your static docs page includes a link to the export HTML notebook, you might want that to contain the dynamic components.
+If this affects you, feel free to open an issue.
 
-For genuinely interactive content, link out to the full HTML export of the notebook.
-
-## Other output types
-
-For figure sizes, unsupported rich outputs, and long output lines, see the [Caveats](index.md#caveats) on the home page and the [Gotchas](getting_started.md#gotchas) in Getting Started.

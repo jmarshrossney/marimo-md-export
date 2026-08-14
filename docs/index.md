@@ -47,11 +47,9 @@ The [example page](example.md) shows how these look in practice.
 By default, figures are stored as base64-encoded PNGs inline in the markdown.
 A notebook with many plots can produce a multi-megabyte file.
 
-Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax.
-The markdown page then stays small, at the cost of no longer being self-contained.
+Some suggestions:
 
-Some further suggestions:
-
+- Pass [`--figures-dir`](getting_started.md#writing-figures-to-files) to write figures out as image files instead, referenced with standard `![alt](path)` syntax. The markdown page then stays small at the cost of no longer being self-contained.
 - Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
 - Consider using `# @suppress` in cells whose outputs you don't need.
 
