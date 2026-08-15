@@ -22,6 +22,20 @@ This includes some common cases:
 
 If this is undesirable, the code cell can be hidden using `hide_code=True`.
 
+### Only f-string cells are sensitive to `hide_code`
+
+This creates an asymmetry that is easy to misread:
+
+- A plain `mo.md("""...""")` cell is replaced by its markdown by marimo itself, *regardless* of `hide_code`.
+  Setting or not setting `hide_code=True` makes no visible difference.
+- An `mo.md(f"""...""")` cell is only stripped of its code block if `hide_code=True`, since that is what tells `marimo-md-export` to drop the block that marimo left behind.
+
+So a notebook whose prose cells are a mixture of plain and f-strings will export cleanly for the plain ones and show code for the f-string ones, unless every f-string cell is explicitly marked hide-code.
+
+Note that this has nothing to do with how the cell is laid out or indented.
+Whether `f"""` sits on the same line as `mo.md(`, or on the line below at any indentation, is irrelevant: marimo reads the string from the parsed AST and dedents it.
+`ruff format` will reindent the line holding the opening `f"""` (that whitespace is code, not string content), but it leaves the string body and closing delimiter alone, so formatting never changes the export.
+
 ## Math is broken for `mo.md()` inside a layout helper
 
 When `mo.md()` is nested inside a layout helper such as `mo.hstack`, `mo.vstack` or `mo.accordion`, the cell's output is the *layout*, not markdown, and it gets injected into the exported markdown document as HTML.
