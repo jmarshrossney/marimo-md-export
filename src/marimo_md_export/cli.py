@@ -102,13 +102,7 @@ def main(
         help="Print the version and exit.",
     ),
 ) -> None:
-    """Export a marimo notebook to markdown with rendered outputs injected.
-
-    marimo export is always called with --force to suppress overwrite
-    prompts; MPLBACKEND=Agg is set in the subprocess environment to
-    prevent matplotlib from hanging. Use --sandbox to run the export
-    in an isolated uv environment.
-    """
+    """Export a marimo notebook to markdown with rendered outputs."""
     extra = marimo_args.split() if marimo_args.strip() else []
     timeout_val: int | None = timeout or None
 

@@ -1,11 +1,9 @@
-# Home
+# marimo-md-export
 
 ## What this is
 
 A CLI tool that wraps [`marimo export`](https://docs.marimo.io/guides/exporting/), extracts rendered outputs from the HTML export, and injects them into the markdown export for every cell.
-The result is a markdown document with tables, console output, and other outputs, plus a sidecar assets directory for figures and the intermediate HTML notebook.
-
-See the [example page](example.md) for output produced by `marimo-md-export` itself, running the demo notebook included in this repository.
+The result is a markdown document with figures, tables, console output, and other outputs.
 
 ## Motivations
 
@@ -43,27 +41,23 @@ The [example page](example.md) shows how these look in practice.
 
 ## Caveats
 
-**Self-contained figures produce large files.**
-
-With `--self-contained`, figures are stored as base64-encoded PNGs inline in the markdown.
-A notebook with many plots can produce a multi-megabyte file.
-The default is to write figures out under the assets directory instead, referenced with standard `![alt](path)` syntax — see [Assets directory](getting_started.md#assets-directory).
-
-Some suggestions:
-
-- Prefer the default assets directory so the markdown page stays small.
-- Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
-- Consider using `# @suppress` in cells whose outputs you don't need.
-
 **Some output types are not fully supported.**
 
 Vega charts, Jupyter widgets, and other rich outputs cannot be rendered in static markdown.
 These produce a placeholder comment (e.g. `<!-- unsupported output type: application/vnd.vega.v5+json -->`).
 
-**Interactive elements are inert.**
-
 `mo.ui` widgets have no working form in a static page, so sliders, buttons and the like are exported as inert markup.
-See [Troubleshooting](troubleshooting.md#interactive-elements-dont-get-exported).
+
+**Exported documents can be large and unwieldy.**
+
+Exporting notebooks with extensive output can lead to large and noisy diffs if tracked under source control.
+With `--self-contained` enabled, figures are stored as base64-encoded PNGs inline in the markdown, so the file size can become quite large.
+
+Some suggestions:
+
+- Do not commit generated notebooks to source control; instead, generate them in the documentation workflow.
+- Prefer the default `--no-self-contained` option with an external assets directory so the markdown page stays small.
+- Consider using `# @suppress` in cells whose outputs you don't need.
 
 **Some outputs just look bad.**
 

@@ -6,10 +6,8 @@
 [![CI](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/ci.yml/badge.svg)](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/ci.yml)
 [![Docs](https://github.com/jmarshrossney/marimo-md-export/actions/workflows/docs.yml/badge.svg)](https://jmarshrossney.github.io/marimo-md-export)
 
-A `uv` tool that wraps `marimo export`, extracts rendered outputs from the HTML export, and injects them into the markdown export.
+A CLI tool that wraps `marimo export`, extracts rendered outputs from the HTML export, and injects them into the markdown export.
 The result is a markdown document with tables (as GFM or HTML), console output, and other cell outputs, plus a sidecar assets directory for figures and the intermediate HTML notebook.
-`mo.md()` cells come through as plain markdown — including f-strings, whose interpolated values are substituted and whose math stays as `$...$`.
-Pass `--self-contained` to embed figures as base64 data URIs instead of writing them out.
 
 **[Full documentation](https://jmarshrossney.github.io/marimo-md-export)**
 
@@ -54,9 +52,35 @@ docs:
 
 This runs `marimo-md-export` to produce a markdown page (with cell outputs injected) and its assets directory, then builds the site.
 
-## Development
+## Developer setup
+
+Install the project and its development dependencies with
 
 ```sh
-uv sync  # sync packages
-just  # run lint, typecheck, test, build docs
+uv sync
 ```
+
+A [`justfile`](justfile) provides the common tasks.
+
+```sh
+just     # runs everything
+just -l  # list commands
+```
+
+If you don't have `just` on your PATH, prefix with `uv run`.
+
+Install [`pre-commit`](https://pre-commit.com/) so that the hooks in [`.pre-commit-config.yaml`](.pre-commit-config.yaml) run before each commit:
+
+```sh
+uv tool install pre-commit
+pre-commit install
+```
+
+## Contributing
+
+Contributions are welcome.
+Feel free to use Issues to ask questions or propose ideas.
+
+Pull Requests should be opened against `main`.
+Please make sure the pre-commit hooks are passing and `just` runs without complaints.
+
