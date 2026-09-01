@@ -177,6 +177,18 @@ def _strip_marimo_type_prefixes(obj: object) -> object:
     return obj
 
 
+def _maybe_unescape(html_val: str) -> str:
+    """Decode an output only if it was stored HTML-escaped.
+
+    marimo stores text/html outputs as raw HTML, so unescaping unconditionally
+    over-decodes: entities that were already escaped in the source -- notably
+    &#x27; inside a single-quoted attribute -- become bare characters that
+    close the attribute early. A payload escaped with escape(quote=False)
+    cannot contain a bare '<', so that is the discriminator.
+    """
+    return html_val if "<" in html_val else unescape(html_val)
+
+
 def _classify_and_build(
     data: dict[str, str],
 ) -> tuple[str, str] | None:
@@ -204,7 +216,7 @@ def _classify_and_build(
                         f'<img src="{escape(val, quote=True)}" alt="{escape(mime_key.split("/")[1], quote=True)}">',
                     )
                 if mime_key == "text/html":
-                    return "html", unescape(val)
+                    return "html", _maybe_unescape(val)
                 if mime_key == "text/plain" and val.strip():
                     return (
                         "text",
@@ -275,7 +287,7 @@ def _classify_and_build(
 
     html_val = data.get("text/html")
     if html_val:
-        decoded = unescape(html_val)
+        decoded = _maybe_unescape(html_val)
         pre_match = re.match(r"<pre[^>]*>(.*?)</pre>", decoded, re.DOTALL)
         if pre_match:
             content = pre_match.group(1)

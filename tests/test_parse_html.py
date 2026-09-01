@@ -542,6 +542,32 @@ def test_generic_html_table():
     assert "<table" in out.raw_html
 
 
+def _raw_html_cell(code: str, html_value: str) -> dict:
+    """A cell whose text/html is stored verbatim, which is what marimo emits."""
+    return {
+        "code_hash": _md5(code.strip()),
+        "id": "rrr",
+        "console": [],
+        "outputs": [{"type": "data", "data": {"text/html": html_value}}],
+    }
+
+
+def test_raw_html_keeps_escaped_quote_in_attribute():
+    # Entities in a verbatim-stored output are the element's own escaping, not
+    # a layer to strip: decoding &#x27; back to ' closes the single-quoted
+    # attribute early and the rest of its value leaks out of the tag. marimo
+    # renders a plotly figure as <marimo-plotly data-figure='{...}'>, so one
+    # apostrophe in a chart title truncates the whole figure spec.
+    code = "fig"
+    html_value = '<div data-spec=\'{"title": "OS&#x27;s share"}\'>chart</div>'
+    html = _make_html([_raw_html_cell(code, html_value)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
+    assert out.raw_html == html_value
+
+
 def test_cells_json_decode_error():
     # Valid bracket structure but invalid JSON content (trailing comma)
     cells_json = '[{"code_hash": "abc",}]'
