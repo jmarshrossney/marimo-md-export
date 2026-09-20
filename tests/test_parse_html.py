@@ -1,13 +1,29 @@
 """Unit tests for parse_html using fixture HTML strings.
 
 Fixtures mimic the structure produced by marimo 0.23.3 without requiring
-marimo to be installed or run.
+marimo to be installed or run. The payload shapes here were captured from a
+real ``marimo export html`` run; see ``_marimo_attr`` for the one convention
+that is easy to get wrong.
 """
 
 import hashlib
 import json
+from html import escape
 
 from marimo_md_export.parse_html import extract_outputs
+
+
+def _marimo_attr(value: str) -> str:
+    """Escape an attribute value the way marimo does when it writes a payload.
+
+    marimo stores a text/html output as raw markup and escapes only what has
+    to be escaped to survive inside a single-quoted attribute: `"` becomes
+    `&quot;`, `'` becomes `&#x27;`, `&` becomes `&amp;` and a backslash
+    becomes `&#92;`. The payload as a whole is never escaped, so a fixture
+    that runs escape() over the finished markup is testing a shape marimo
+    does not produce.
+    """
+    return escape(value, quote=True).replace("\\", "&#92;")
 
 
 def _md5(s: str) -> str:
@@ -65,17 +81,15 @@ def _table_cell(code: str, rows: list[dict], columns: list[str]) -> dict:
     data_data = json.dumps(data_inner)  # double-encode as JSON string
     marimo_table = (
         f"<marimo-ui-element>"
-        f"<marimo-table data-data='{data_data}' data-field-types='{field_types_json}'>"
+        f"<marimo-table data-data='{_marimo_attr(data_data)}' "
+        f"data-field-types='{_marimo_attr(field_types_json)}'>"
         f"</marimo-table></marimo-ui-element>"
     )
-    import html as html_module
-
-    escaped = html_module.escape(marimo_table, quote=False)
     return {
         "code_hash": _md5(code.strip()),
         "id": "bbb",
         "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "outputs": [{"type": "data", "data": {"text/html": marimo_table}}],
     }
 
 
@@ -107,14 +121,12 @@ def _json_cell(code: str, obj: object) -> dict:
 
 
 def _html_cell(code: str, html_value: str) -> dict:
-    import html as html_module
-
-    escaped = html_module.escape(html_value, quote=False)
+    """A cell whose text/html is stored verbatim, which is what marimo emits."""
     return {
         "code_hash": _md5(code.strip()),
         "id": "hhh",
         "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "outputs": [{"type": "data", "data": {"text/html": html_value}}],
     }
 
 
@@ -424,17 +436,14 @@ def test_table_data_json_decode_error():
     # Invalid JSON in data-data
     marimo_table = (
         "<marimo-ui-element>"
-        '<marimo-table data-data="invalid json" data-field-types="[]">'
+        "<marimo-table data-data='invalid json' data-field-types='[]'>"
         "</marimo-table></marimo-ui-element>"
     )
-    import html as html_module
-
-    escaped = html_module.escape(marimo_table, quote=False)
     cell = {
         "code_hash": _md5(code.strip()),
         "id": "ggg",
         "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "outputs": [{"type": "data", "data": {"text/html": marimo_table}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
@@ -448,20 +457,17 @@ def test_field_types_json_decode_error():
     data_inner = json.dumps(rows).replace('"__NaN__"', "NaN")
     data_data = json.dumps(data_inner)
     # Invalid field types JSON - should fall back to rows[0].keys()
-    # Use single quotes for HTML attributes to match original fixture pattern
     marimo_table = (
         f"<marimo-ui-element>"
-        f"<marimo-table data-data='{data_data}' data-field-types='invalid'>"
+        f"<marimo-table data-data='{_marimo_attr(data_data)}' "
+        f"data-field-types='invalid'>"
         f"</marimo-table></marimo-ui-element>"
     )
-    import html as html_module
-
-    escaped = html_module.escape(marimo_table, quote=False)
     cell = {
         "code_hash": _md5(code.strip()),
         "id": "hhh",
         "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "outputs": [{"type": "data", "data": {"text/html": marimo_table}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
@@ -479,19 +485,18 @@ def test_nan_in_string_value_not_replaced():
     # Build data-data manually: use NaN as bare values where appropriate
     data_inner = '[{"col": "NaN handling"}, {"col": NaN}]'
     data_data = json.dumps(data_inner)
+    field_types = _marimo_attr('[["col", ["string", "str"]]]')
     marimo_table = (
         f"<marimo-ui-element>"
-        f'<marimo-table data-data=\'{data_data}\' data-field-types=\'[["col", ["string", "str"]]]\'>'
+        f"<marimo-table data-data='{_marimo_attr(data_data)}' "
+        f"data-field-types='{field_types}'>"
         f"</marimo-table></marimo-ui-element>"
     )
-    import html as html_module
-
-    escaped = html_module.escape(marimo_table, quote=False)
     cell = {
         "code_hash": _md5(code.strip()),
         "id": "kkk",
         "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "outputs": [{"type": "data", "data": {"text/html": marimo_table}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
@@ -524,22 +529,37 @@ def test_marimo_mimebundle_json_decode_error():
 
 def test_generic_html_table():
     code = "df"
-    html_val = "<table><tr><th>A</th></tr><tr><td>1</td></tr></table>"
-    import html as html_module
-
-    escaped = html_module.escape(html_val, quote=False)
+    # Stored verbatim, which is what marimo does: the entity belongs to the
+    # cell content and has to survive to the output.
+    html_val = "<table><tr><th>A</th></tr><tr><td>a &amp; b</td></tr></table>"
     cell = {
         "code_hash": _md5(code.strip()),
         "id": "jjj",
         "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "outputs": [{"type": "data", "data": {"text/html": html_val}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "table"
-    assert "<table" in out.raw_html
+    assert out.raw_html == html_val
+
+
+def test_raw_html_keeps_escaped_quote_in_attribute():
+    # Entities in a verbatim-stored output are the element's own escaping, not
+    # a layer to strip: decoding &#x27; back to ' closes the single-quoted
+    # attribute early and the rest of its value leaks out of the tag. marimo
+    # renders a plotly figure as <marimo-plotly data-figure='{...}'>, so one
+    # apostrophe in a chart title truncates the whole figure spec.
+    code = "fig"
+    html_value = '<div data-spec=\'{"title": "OS&#x27;s share"}\'>chart</div>'
+    html = _make_html([_html_cell(code, html_value)])
+    results = extract_outputs(html)
+    assert len(results) == 1
+    out = results[_md5(code.strip())]
+    assert out.output_type == "html"
+    assert out.raw_html == html_value
 
 
 def test_cells_json_decode_error():
@@ -1105,9 +1125,7 @@ def test_mimebundle_dict_raw_svg():
 
 def test_generic_html_output_type():
     code = "html_out"
-    import html as html_module
-
-    html_val = html_module.escape("<div>some generic html</div>", quote=False)
+    html_val = "<div>some generic html</div>"
     cell = {
         "code_hash": _md5(code.strip()),
         "id": "ggg",

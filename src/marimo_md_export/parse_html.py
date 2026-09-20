@@ -180,9 +180,55 @@ def _strip_marimo_type_prefixes(obj: object) -> object:
 def _classify_and_build(
     data: dict[str, str],
 ) -> tuple[str, str] | None:
-    """
-    Given the output data dict (MIME → value), return (output_type, raw_html)
-    or None if there is nothing renderable.
+    """Pick one MIME type out of a cell's output and render it.
+
+    ``data`` maps MIME type → value, as marimo stored it in the session JSON.
+    A cell can carry several representations of the same result; this walks
+    them in a fixed priority order and returns the first that is renderable,
+    as ``(output_type, html)``, or ``None`` if none is. The ``output_type`` is
+    a label for downstream formatting, not a MIME type. The ``html`` is a
+    fragment to write into the markdown, except for ``markdown`` and ``latex``
+    where it is the source itself.
+
+    Priority order, first match wins:
+
+    1. ``application/vnd.marimo+mimebundle`` -- marimo's own bundle, holding
+       several representations of one object. Its inner keys are searched in
+       the order png, svg, html, plain and handled as the standalone types
+       below.
+    2. ``image/*`` (png, jpeg, gif, svg+xml, tiff, avif, bmp, webp) → an
+       ``<img>`` tag. The value is already a data URI, except for a raw SVG,
+       which gets wrapped in one. Type ``figure``.
+    3. ``application/json`` → pretty-printed with ``pprint`` inside ``<pre>``.
+       marimo tags scalars in JSON output as e.g. ``marimo/float:1.5``, so the
+       tags are stripped first. Falls back to the raw text if it will not
+       parse. Type ``json``.
+    4. ``text/latex`` → normalised to a ``$$...$$`` display block, or left as
+       inline ``$...$`` if that is how it arrived. Emitted as LaTeX source,
+       not HTML. Type ``latex``.
+    5. ``text/csv`` → escaped inside ``<pre><code>``. Type ``csv``.
+    6. ``text/markdown``, but only when no ``text/html`` accompanies it →
+       passed through as markdown source. Under ``MARIMO_NO_JS=true`` a
+       ``mo.md()`` cell emits its source here, so taking it ahead of
+       ``text/html`` keeps it from being wrapped in ``<pre>``. Type
+       ``markdown``.
+    7. ``text/html`` → one of three shapes, decided by inspecting the payload:
+       a ``<pre>`` wrapper, which marimo uses for a plain value and whose
+       content is a Python repr, so the quotes are stripped and the content
+       re-escaped (type ``text``); a ``<marimo-table>``, whose JSON payload
+       is rebuilt into table markup, or a plain ``<table>`` taken as-is --
+       both labelled ``table`` so ``inject`` can turn them into GFM; or
+       anything else, passed through verbatim (type ``html``).
+    8. ``text/plain`` → escaped inside ``<pre>``, with repr quotes stripped as
+       above. Type ``text``.
+    9. A known-unrenderable type (vega, vega-lite, jupyter widgets,
+       ``text/password``) → an HTML comment naming it, so the gap in the
+       document is visible rather than silent. Type ``unsupported``.
+
+    On escaping: marimo stores ``text/html`` and ``text/markdown`` raw, so
+    entities in them belong to the payload and must survive to the output.
+    The exception is the repr inside a ``<pre>``, which marimo really does
+    escape. See the comment on ``decoded`` below.
     """
     bundle_raw = data.get("application/vnd.marimo+mimebundle")
     if bundle_raw:
@@ -204,7 +250,7 @@ def _classify_and_build(
                         f'<img src="{escape(val, quote=True)}" alt="{escape(mime_key.split("/")[1], quote=True)}">',
                     )
                 if mime_key == "text/html":
-                    return "html", unescape(val)
+                    return "html", val
                 if mime_key == "text/plain" and val.strip():
                     return (
                         "text",
@@ -271,10 +317,16 @@ def _classify_and_build(
     # a mo.md() call get passed through verbatim; see inject._format_output.
     md_val = data.get("text/markdown")
     if md_val and not data.get("text/html"):
-        return "markdown", unescape(md_val)
+        return "markdown", md_val
 
     html_val = data.get("text/html")
     if html_val:
+        # marimo stores text/html raw, so any entities in it are the element's
+        # own escaping rather than a layer to strip: decoding &#x27; inside a
+        # single-quoted attribute closes it early and the rest of the value
+        # leaks out of the tag. `decoded` is therefore a view used to classify
+        # the payload and to read the content of a <pre>, whose repr marimo
+        # really does escape; anything passed through verbatim keeps html_val.
         decoded = unescape(html_val)
         pre_match = re.match(r"<pre[^>]*>(.*?)</pre>", decoded, re.DOTALL)
         if pre_match:
@@ -301,8 +353,8 @@ def _classify_and_build(
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html
         if "<table" in decoded:
-            return "table", decoded
-        return "html", decoded
+            return "table", html_val
+        return "html", html_val
 
     plain = data.get("text/plain", "")
     if plain and plain.strip():
