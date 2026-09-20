@@ -78,9 +78,4 @@ pre-commit install
 
 ## Contributing
 
-Contributions are welcome.
-Feel free to use Issues to ask questions or propose ideas.
-
-Pull Requests should be opened against `main`.
-Please make sure the pre-commit hooks are passing and `just` runs without complaints.
-
+Welcome, with some caveats and a few small requests. Please read [CONTRIBUTING.md](CONTRIBUTING.md). Thanks!
