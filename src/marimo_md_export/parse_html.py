@@ -353,7 +353,7 @@ def _classify_and_build(
             table_html = _table_html_from_marimo_table(decoded)
             return "table", table_html
         if "<table" in decoded:
-            return "table", decoded
+            return "table", html_val
         return "html", html_val
 
     plain = data.get("text/plain", "")

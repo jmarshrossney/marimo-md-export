@@ -524,22 +524,21 @@ def test_marimo_mimebundle_json_decode_error():
 
 def test_generic_html_table():
     code = "df"
-    html_val = "<table><tr><th>A</th></tr><tr><td>1</td></tr></table>"
-    import html as html_module
-
-    escaped = html_module.escape(html_val, quote=False)
+    # Stored verbatim, which is what marimo does: the entity belongs to the
+    # cell content and has to survive to the output.
+    html_val = "<table><tr><th>A</th></tr><tr><td>a &amp; b</td></tr></table>"
     cell = {
         "code_hash": _md5(code.strip()),
         "id": "jjj",
         "console": [],
-        "outputs": [{"type": "data", "data": {"text/html": escaped}}],
+        "outputs": [{"type": "data", "data": {"text/html": html_val}}],
     }
     html = _make_html([cell])
     results = extract_outputs(html)
     assert len(results) == 1
     out = results[_md5(code.strip())]
     assert out.output_type == "table"
-    assert "<table" in out.raw_html
+    assert out.raw_html == html_val
 
 
 def _raw_html_cell(code: str, html_value: str) -> dict:
